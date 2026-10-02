@@ -24,6 +24,10 @@ from .workflow import (
     WorkflowParser,
     execute_workflow,
 )
+from .web import (
+    DiffusionWebServer,
+    run_web_server,
+)
 from .exceptions import (
     AmevaTermuxError,
     InferenceTimeoutError,

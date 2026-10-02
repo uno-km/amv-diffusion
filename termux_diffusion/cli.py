@@ -125,6 +125,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     wf_inspect = wf_sub.add_parser("inspect", help="Inspect and validate ComfyUI workflow nodes and execution order")
     wf_inspect.add_argument("workflow_file", type=str, help="Path to ComfyUI workflow JSON")
 
+    # web command (Mobile Web UI server)
+    web_parser = subparsers.add_parser("web", help="Launch Mobile Web UI server (Galaxy S25 Viewport)")
+    web_parser.add_argument("-p", "--port", type=int, default=8080, help="Web server port (default: 8080)")
+    web_parser.add_argument("-H", "--host", type=str, default="0.0.0.0", help="Host interface to bind (default: 0.0.0.0)")
+
     # ── AMEVA Component Protocol v1 ─────────────────────────────────────────
     try:
         from ameva_component.cli_support import build_protocol_subcommands
@@ -334,6 +339,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         else:
             wf_parser.print_help()
             return 0
+
+    elif args.command == "web":
+        from .web import run_web_server
+        run_web_server(host=args.host, port=args.port, blocking=True)
+        return 0
 
     elif args.command in ("component", "model", "instance"):
         try:
