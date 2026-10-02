@@ -11,6 +11,10 @@ from .core import (
     set_default_negative_prompt,
     resolve_vram_and_streaming_policy,
 )
+from .detailer import (
+    detect_faces_on_image,
+    refine_face_regions,
+)
 from .exceptions import (
     AmevaTermuxError,
     InferenceTimeoutError,

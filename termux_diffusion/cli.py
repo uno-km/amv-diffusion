@@ -53,8 +53,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     gen_parser.add_argument("-t", "--threads", type=int, default=None, help="CPU threads")
     gen_parser.add_argument("--seed", type=int, default=-1, help="RNG seed (-1 for random, 0 to 4294967295)")
     gen_parser.add_argument("-o", "--output", type=str, default=None, help="Output file path")
-    gen_parser.add_argument("--sampler", type=str, default=None, help="Sampler algorithm (euler, euler_a, heun, dpm2, dpm++2s_a, dpm++2m, lcm)")
-    gen_parser.add_argument("--schedule", type=str, default=None, help="Noise schedule (default, discrete, karras, exponential, ays, gits)")
+    gen_parser.add_argument("--schedule", "--scheduler", dest="schedule", type=str, default=None, help="Noise schedule (flux, karras, exponential, ays, gits, discrete, etc.)")
+    gen_parser.add_argument("--flow-shift", type=float, default=None, help="Shift value for Flow models like Flux/Z-Image")
+    gen_parser.add_argument("--detail-faces", "--face-detailer", action="store_true", default=False, help="Enable Mobile FaceDetailer (auto face crop, local Img2Img, seamless alpha blend)")
+    gen_parser.add_argument("--detailer-strength", type=float, default=0.35, help="FaceDetailer denoising strength (default: 0.35)")
+    gen_parser.add_argument("--detailer-steps", type=int, default=2, help="FaceDetailer localized sampling steps (default: 2)")
+    gen_parser.add_argument("--detailer-padding", type=float, default=1.45, help="FaceDetailer bounding box padding factor (default: 1.45)")
     gen_parser.add_argument("--vae-tiling", action="store_true", help="Enable VAE tiling for ~70%% lower peak memory")
     gen_parser.add_argument("-i", "--init-img", type=str, default=None, help="Source image for Img2Img synthesis")
     gen_parser.add_argument("--strength", type=float, default=None, help="Img2Img denoising strength (0.0 to 1.0, default: 0.75)")
@@ -211,6 +215,11 @@ def main(argv: Optional[List[str]] = None) -> int:
                 params_backend=args.params_backend,
                 custom_backend=args.runtime_backend,
                 vae_format=args.vae_format,
+                flow_shift=getattr(args, "flow_shift", None),
+                detail_faces=getattr(args, "detail_faces", False),
+                detailer_strength=getattr(args, "detailer_strength", 0.35),
+                detailer_steps=getattr(args, "detailer_steps", 2),
+                detailer_padding=getattr(args, "detailer_padding", 1.45),
                 strict_vulkan=args.strict_vulkan,
                 no_cache=getattr(args, "no_cache", False),
                 progress=getattr(args, "progress", False),

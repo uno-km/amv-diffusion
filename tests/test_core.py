@@ -408,7 +408,7 @@ def test_advanced_parameters_cmd_generation(tmp_path):
         )
         assert "--sampling-method" in captured_cmd
         assert "dpm++2m" in captured_cmd
-        assert "--schedule" in captured_cmd
+        assert "--scheduler" in captured_cmd or "--schedule" in captured_cmd
         assert "karras" in captured_cmd
         assert "--vae-tiling" in captured_cmd
         assert "--clip-skip" in captured_cmd

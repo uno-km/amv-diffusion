@@ -26,6 +26,11 @@ from .platform import (
     get_galaxy_gallery_dir,
     get_optimal_thread_count,
 )
+
+
+def get_default_cache_dir() -> Path:
+    from .platform import get_default_cache_dir as _fn
+    return _fn()
 from .hardware import (
     TermuxExecutionGuard,
     get_kernel_physical_memory_gb,
@@ -101,10 +106,14 @@ class ProgressInfo:
 
 
 VALID_SAMPLERS = {
-    "euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2", "ipndm", "ipndm_v", "lcm"
+    "euler", "euler_a", "heun", "dpm2", "dpm++2s_a", "dpm++2m", "dpm++2mv2",
+    "ipndm", "ipndm_v", "lcm", "ddim_trailing", "tcd", "res_multistep", "res_2s",
+    "er_sde", "euler_cfg_pp", "euler_a_cfg_pp", "euler_ge", "dpm++2m_sde", "dpm++2m_sde_bt", "lms"
 }
 VALID_SCHEDULERS = {
-    "default", "discrete", "karras", "exponential", "ays", "gits"
+    "default", "discrete", "karras", "exponential", "ays", "gits", "sgm_uniform",
+    "simple", "smoothstep", "kl_optimal", "lcm", "bong_tangent", "ltx2", "logit_normal",
+    "flux2", "flux", "beta"
 }
 
 
@@ -360,6 +369,11 @@ def generate(
     params_backend: Optional[str] = None,
     custom_backend: Optional[str] = None,
     vae_format: Optional[str] = None,
+    flow_shift: Optional[float] = None,
+    detail_faces: bool = False,
+    detailer_strength: float = 0.35,
+    detailer_steps: int = 2,
+    detailer_padding: float = 1.45,
     export_gallery: bool = True,
     wake_lock: bool = True,
     low_ram_guard: bool = True,
@@ -482,6 +496,10 @@ def generate(
             cfg_scale = 1.0
         if sampling_method is None:
             sampling_method = "euler"
+        if schedule is None:
+            schedule = "flux"
+        if guidance is None:
+            guidance = 3.5
         # Auto-apply mobile Vulkan memory-safe acceleration flags for 6B DiT
         if device_mode in ("vulkan", "gpu") or effective_device in ("vulkan", "gpu"):
             clip_on_cpu = True
@@ -515,6 +533,10 @@ def generate(
         steps = preset_info.get("default_steps", 10)
     if cfg_scale is None:
         cfg_scale = preset_info.get("default_cfg", 4.0)
+    if schedule is None:
+        schedule = preset_info.get("default_schedule")
+    if sampling_method is None:
+        sampling_method = preset_info.get("default_sampler")
     effective_guidance = guidance if guidance is not None else preset_info.get("default_guidance")
     if threads is None:
         threads = get_optimal_thread_count()
@@ -536,7 +558,6 @@ def generate(
 
     # 4.3 Prompt Embedding Cache & Assetization Management
     import hashlib
-    from .platform import get_default_cache_dir
     prompt_clean = str(prompt).strip()
     prompt_hash = hashlib.sha256(prompt_clean.encode("utf-8")).hexdigest()[:16]
     prompt_cache_dir = get_default_cache_dir() / "prompt_cache"
@@ -681,12 +702,15 @@ def generate(
         if sc_clean in VALID_SCHEDULERS:
             effective_schedule = sc_clean
             if sc_clean != "default":
-                cmd.extend(["--schedule", sc_clean])
+                cmd.extend(["--scheduler", sc_clean])
         else:
             logger.warning(
                 "Invalid schedule '%s'; falling back to engine default ('default'). Valid: %s",
                 schedule, ", ".join(sorted(VALID_SCHEDULERS))
             )
+
+    if flow_shift is not None:
+        cmd.extend(["--flow-shift", str(flow_shift)])
 
     if vae_tiling:
         cmd.append("--vae-tiling")
@@ -792,6 +816,8 @@ def generate(
     env = get_clean_execution_env(backend=effective_device)
     # Bypass debug CPU shadow checks on mobile Vulkan to unlock 10x throughput
     env.setdefault("GGML_VULKAN_SKIP_CHECKS", "999999999")
+    # Throttle Vulkan nodes per submit to prevent Mali GPU kernel driver queue stall (do_sys_poll)
+    env.setdefault("GGML_VK_MAX_NODES_PER_SUBMIT", "16")
 
     # 5.2 ameva-runtime DiffusionAdapter Binding (Vulkan / GPU mode)
     if effective_device in ("vulkan", "gpu") or device_mode in ("vulkan", "gpu"):
@@ -1090,6 +1116,37 @@ def generate(
 
     if not out_path.is_file():
         raise TermuxDiffusionError(f"Engine finished but output file was not created at: {out_path}")
+
+    # 6.5 Mobile FaceDetailer: Auto-detect, Crop, Refine with Local Img2Img, and Seamless Blend
+    if detail_faces and out_path.is_file():
+        try:
+            from .detailer import refine_face_regions
+            logger.info("[termux-diffusion] Running Mobile FaceDetailer stage...")
+            print("[termux-diffusion] Running Mobile FaceDetailer stage...")
+            refine_face_regions(
+                image_path=out_path,
+                generator_func=generate,
+                prompt=prompt,
+                output_path=out_path,
+                strength=detailer_strength,
+                steps=detailer_steps,
+                padding_factor=detailer_padding,
+                device=device,
+                model=model,
+                generator_kwargs={
+                    "vae_tiling": vae_tiling,
+                    "schedule": schedule,
+                    "sampling_method": sampling_method,
+                    "taesd": taesd,
+                    "mmap": mmap,
+                    "max_vram": max_vram,
+                    "stream_layers": stream_layers,
+                    "params_backend": params_backend,
+                    "low_ram_guard": False,
+                }
+            )
+        except Exception as fd_err:
+            logger.warning("[termux-diffusion] FaceDetailer pass encountered an issue: %s. Keeping base image.", fd_err)
 
     # 7. Android Gallery MediaStore Sync (Galaxy Gallery visibility)
     gallery_path = None
