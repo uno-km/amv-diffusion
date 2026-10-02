@@ -110,6 +110,21 @@ def main(argv: Optional[List[str]] = None) -> int:
     # clear-cache command
     subparsers.add_parser("clear-cache", help="Purge cached model weights to reclaim disk space")
 
+    # workflow command (ComfyUI DAG execution)
+    wf_parser = subparsers.add_parser("workflow", help="Execute ComfyUI workflows (UI & API JSON formats)")
+    wf_sub = wf_parser.add_subparsers(dest="workflow_command", help="Workflow subcommands")
+
+    wf_run = wf_sub.add_parser("run", help="Execute ComfyUI workflow JSON end-to-end")
+    wf_run.add_argument("workflow_file", type=str, help="Path to ComfyUI workflow JSON (UI or API format)")
+    wf_run.add_argument("-o", "--output-dir", type=str, default=None, help="Directory to save generated outputs")
+    wf_run.add_argument("-d", "--device", type=str, default="auto", choices=["auto", "gpu", "vulkan", "opencl", "cpu"], help="Compute device (default: auto)")
+    wf_run.add_argument("--force-run", action="store_true", default=False, help="Bypass hardware limits for high-RAM (16GB/24GB+) devices")
+    wf_run.add_argument("--progress", action="store_true", default=True, help="Display progress bar")
+    wf_run.add_argument("--json-progress", action="store_true", default=False, help="Stream NDJSON progress events for Node.js / IPC")
+
+    wf_inspect = wf_sub.add_parser("inspect", help="Inspect and validate ComfyUI workflow nodes and execution order")
+    wf_inspect.add_argument("workflow_file", type=str, help="Path to ComfyUI workflow JSON")
+
     # ── AMEVA Component Protocol v1 ─────────────────────────────────────────
     try:
         from ameva_component.cli_support import build_protocol_subcommands
@@ -269,6 +284,56 @@ def main(argv: Optional[List[str]] = None) -> int:
         removed = clear_cache()
         print(f"[Clean] Removed {removed} cached model files.")
         return 0
+
+    elif args.command == "workflow":
+        from .workflow import WorkflowExecutor, WorkflowParser, DAGEngine, WorkflowError
+        if getattr(args, "workflow_command", None) == "run":
+            executor = WorkflowExecutor()
+            try:
+                res = executor.run(
+                    workflow=args.workflow_file,
+                    output_dir=args.output_dir,
+                    device=args.device,
+                    force_run=args.force_run,
+                    progress=args.progress,
+                    json_progress=args.json_progress
+                )
+                print(f"[Workflow] Completed in {res.elapsed_seconds:.2f}s! Generated {len(res.output_images)} image(s):")
+                for img in res.output_images:
+                    print(f"  -> {img}")
+                return 0 if res.success else 1
+            except WorkflowError as wf_err:
+                print(f"[ERROR] [WORKFLOW_FAILED]: {wf_err}", file=sys.stderr)
+                return 1
+            except FileNotFoundError as fnf:
+                print(f"[ERROR] [FILE_NOT_FOUND]: {fnf}", file=sys.stderr)
+                return 1
+        elif getattr(args, "workflow_command", None) == "inspect":
+            try:
+                nodes = WorkflowParser.parse(args.workflow_file)
+                order = DAGEngine.topological_sort(nodes)
+                raw_json = WorkflowParser.load_json(args.workflow_file)
+                fmt = WorkflowParser.detect_format(raw_json)
+                print(f"\n--- [Workflow Inspector] ---")
+                print(f"File: {args.workflow_file}")
+                print(f"Detected Format: {fmt}")
+                print(f"Total Nodes: {len(nodes)}")
+                print(f"Execution Order ({len(order)} steps):")
+                for idx, nid in enumerate(order, 1):
+                    n = nodes[nid]
+                    title_str = f" ('{n.title}')" if n.title else ""
+                    print(f"  {idx}. [Node #{nid}] {n.class_type}{title_str}")
+                print()
+                return 0
+            except WorkflowError as wf_err:
+                print(f"[ERROR] [INSPECT_FAILED]: {wf_err}", file=sys.stderr)
+                return 1
+            except FileNotFoundError as fnf:
+                print(f"[ERROR] [FILE_NOT_FOUND]: {fnf}", file=sys.stderr)
+                return 1
+        else:
+            wf_parser.print_help()
+            return 0
 
     elif args.command in ("component", "model", "instance"):
         try:

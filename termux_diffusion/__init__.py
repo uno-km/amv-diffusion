@@ -15,6 +15,15 @@ from .detailer import (
     detect_faces_on_image,
     refine_face_regions,
 )
+from .workflow import (
+    DAGEngine,
+    NODE_REGISTRY,
+    WorkflowError,
+    WorkflowExecutor,
+    WorkflowFormatError,
+    WorkflowParser,
+    execute_workflow,
+)
 from .exceptions import (
     AmevaTermuxError,
     InferenceTimeoutError,
@@ -126,6 +135,12 @@ __all__ = [
     "ModelDownloadError",
     "ProvisioningError",
     "OOMRiskError",
-    "InferenceTimeoutError",
+    "execute_workflow",
+    "WorkflowExecutor",
+    "WorkflowParser",
+    "DAGEngine",
+    "NODE_REGISTRY",
+    "WorkflowError",
+    "WorkflowFormatError",
 ]
 
