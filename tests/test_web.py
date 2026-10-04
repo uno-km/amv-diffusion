@@ -25,7 +25,7 @@ def test_get_mobile_ui(test_server):
         assert resp.status == 200
         html = resp.read().decode("utf-8")
         assert "<meta name=\"viewport\"" in html
-        assert "amviUI" in html
+        assert "AmfyUI" in html
         assert "Quick Mode" in html
         assert "Generate" in html
         assert "FaceDetailer" in html

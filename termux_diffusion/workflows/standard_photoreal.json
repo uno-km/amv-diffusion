@@ -1,7 +1,7 @@
 {
   "name": "Standard Photoreal (ComfyUI Canonical)",
   "description": "전 세계에서 가장 널리 쓰이는 표준 ComfyUI TXT2IMG + FaceDetailer 안면 복원 배전반",
-  "author": "comfyanonymous / amviUI",
+  "author": "comfyanonymous / AmfyUI",
   "version": 1.0,
   "last_node_id": 8,
   "last_link_id": 10,
@@ -82,7 +82,7 @@
       "title": "Save / Export Image",
       "inputs": [{"name": "images", "type": "IMAGE", "link": 10}],
       "outputs": [],
-      "widgets_values": ["amviUI_output"]
+      "widgets_values": ["AmfyUI_output"]
     }
   ],
   "links": [

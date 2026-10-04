@@ -276,7 +276,7 @@ def _start_workflow_execution(body: Dict[str, Any], job_id: Optional[str] = None
         _CURRENT_JOB["job_id"] = job_id or f"job_{int(time.time() * 1000)}"
         _CURRENT_JOB["job_type"] = "workflow"
         wf_name = (body.get("workflow", {}) if isinstance(body.get("workflow"), dict) else {}).get("name", "Custom Workflow")
-        _CURRENT_JOB["job_name"] = job_name or f"amviUI: {wf_name}"
+        _CURRENT_JOB["job_name"] = job_name or f"AmfyUI: {wf_name}"
         _CURRENT_JOB["error"] = None
         _CURRENT_JOB["result"] = None
         _CURRENT_JOB["start_time"] = time.time()
@@ -635,7 +635,7 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
             wf_name = f"Preset: {body['workflow_id']}"
         elif isinstance(body.get("workflow"), dict):
             wf_name = body["workflow"].get("name", "Custom Workflow")
-        job_name = f"amviUI: {wf_name}"
+        job_name = f"AmfyUI: {wf_name}"
 
         if is_running:
             enqueue_info = _enqueue_job("workflow", body, name=job_name)
@@ -657,7 +657,7 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>AMEVA amviUI Studio</title>
+  <title>AMEVA AmfyUI Studio</title>
   <style>
     :root {
       --bg: #07090e;
@@ -1646,7 +1646,7 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
   <header>
     <div class="brand">
       <span>AMEVA</span>
-      <span class="brand-badge">amviUI</span>
+      <span class="brand-badge">AmfyUI</span>
     </div>
     <div class="status-badge" id="statusBadge">
       <span class="status-dot"></span>
@@ -1680,7 +1680,7 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
   <main>
     <div class="tabs">
       <button class="tab-btn active" id="tabQuickBtn" onclick="switchTab('quick')">Quick Mode</button>
-      <button class="tab-btn" id="tabWfBtn" onclick="switchTab('wf')">amviUI</button>
+      <button class="tab-btn" id="tabWfBtn" onclick="switchTab('wf')">AmfyUI</button>
     </div>
 
     <!-- TAB 1: Quick Generate -->
@@ -1731,7 +1731,7 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
       </div>
     </div>
 
-    <!-- TAB 2: amviUI Workflow -->
+    <!-- TAB 2: AmfyUI Workflow -->
     <div id="wfTab" style="display: none; flex-direction: column; gap: 14px;">
       <div class="card">
         <div class="card-title">Standard Workflows (인기 표준 프리셋)</div>
@@ -1952,7 +1952,7 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
       if (tab === 'quick') {
         genBtn.innerHTML = '<span>Generate</span>';
       } else {
-        genBtn.innerHTML = '<span>Execute amviUI Workflow</span>';
+        genBtn.innerHTML = '<span>Execute AmfyUI Workflow</span>';
       }
     }
 
@@ -2164,6 +2164,7 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
     async function selectPresetWorkflow(wfId, elem, autoScroll = true) {
       currentPresetId = wfId;
       try {
+        localStorage.setItem('amfy_selected_workflow', wfId);
         localStorage.setItem('amvi_selected_workflow', wfId);
       } catch (e) {}
       document.querySelectorAll('.wf-card').forEach(c => c.classList.remove('active'));
@@ -2953,7 +2954,7 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
         };
       } else {
         if (!loadedWorkflowData) {
-          alert('Please select an amviUI / ComfyUI workflow JSON file first.');
+          alert('Please select an AmfyUI / ComfyUI workflow JSON file first.');
           document.getElementById('progressBox').classList.remove('active');
           return;
         }
@@ -3268,7 +3269,7 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
       setupBottomSheetDrag();
       await loadDeviceModelCatalog();
       await loadPresetList();
-      const savedWf = localStorage.getItem('amvi_selected_workflow') || 'standard_photoreal';
+      const savedWf = localStorage.getItem('amfy_selected_workflow') || localStorage.getItem('amvi_selected_workflow') || 'standard_photoreal';
       await selectPresetWorkflow(savedWf, null, false);
       startBackgroundHudPolling();
       await probeInitialServerState();
@@ -3285,7 +3286,7 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
 
 
 class DiffusionWebServer:
-    """Production daemon wrapper for Termux Diffusion amviUI Mobile Server."""
+    """Production daemon wrapper for Termux Diffusion AmfyUI Mobile Server."""
 
     def __init__(self, host: str = "0.0.0.0", port: int = 11553) -> None:
         self.host = host
@@ -3309,9 +3310,9 @@ class DiffusionWebServer:
         ThreadingHTTPServer.allow_reuse_address = True
         self.server = ThreadingHTTPServer((self.host, self.port), DiffusionWebHandler)
         actual_port = self.server.server_port
-        logger.info("[DiffusionWebServer] amviUI Server live on http://%s:%d", self.host, actual_port)
+        logger.info("[DiffusionWebServer] AmfyUI Server live on http://%s:%d", self.host, actual_port)
         print(f"\n==================================================================")
-        print(f"  AMEVA amviUI Mobile Studio Live (Galaxy S25 Viewport)")
+        print(f"  AMEVA AmfyUI Mobile Studio Live (Galaxy S25/S21 Viewport)")
         print(f"  Local Device URL  : http://localhost:{actual_port}")
         print(f"  Network / Tailscale: http://{self.host}:{actual_port}")
         print(f"==================================================================\n")
@@ -3336,7 +3337,7 @@ class DiffusionWebServer:
 
 
 def run_web_server(host: str = "0.0.0.0", port: int = 11553, blocking: bool = True) -> DiffusionWebServer:
-    """Convenience entry point to launch the amviUI mobile web server."""
+    """Convenience entry point to launch the AmfyUI mobile web server."""
     server = DiffusionWebServer(host=host, port=port)
     server.start(blocking=blocking)
     return server

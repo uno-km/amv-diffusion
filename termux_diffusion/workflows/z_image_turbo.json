@@ -1,7 +1,7 @@
 {
   "name": "Z-Image Turbo 6B (Next-Gen DiT)",
   "description": "차세대 6B 파라미터 Diffusion Transformer 플로우 매칭 실사 고화질 배전반",
-  "author": "Tongyi / amviUI",
+  "author": "Tongyi / AmfyUI",
   "version": 1.0,
   "last_node_id": 7,
   "last_link_id": 8,

@@ -947,7 +947,7 @@ def get_user_workflows_dir() -> Path:
 
 
 def list_builtin_workflows() -> List[Dict[str, Any]]:
-    """Lists standard bundled and user-saved amviUI / ComfyUI workflows."""
+    """Lists standard bundled and user-saved AmfyUI / ComfyUI workflows."""
     results: List[Dict[str, Any]] = []
     seen_ids = set()
 
@@ -991,8 +991,8 @@ def list_builtin_workflows() -> List[Dict[str, Any]]:
                 nodes = WorkflowParser.parse(data)
                 order = DAGEngine.topological_sort(nodes)
                 name = data.get("name", wf_id.replace("_", " ").title())
-                desc = data.get("description", "Standard amviUI Workflow")
-                author = data.get("author", "amviUI")
+                desc = data.get("description", "Standard AmfyUI Workflow")
+                author = data.get("author", "AmfyUI")
                 results.append({
                     "id": wf_id,
                     "name": name,
