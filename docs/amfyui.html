@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/svg+xml" href="/shared/favicon.svg">
+  <script>if(location.pathname.match(/\/(lib|sdk)\/[^\/]+$/)){location.replace(location.pathname+'/'+location.search+location.hash);}</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AmfyUI: ComfyUI Mobile DAG Studio &amp; 1280×720 DiT Showcase | Termux-Diffusion</title>
+  <meta name="description" content="Official AmfyUI Mobile Studio manual, ComfyUI DAG node compatibility matrix, workflow JSON downloads, and Samsung Galaxy S20 HD 1280x720 4-Season empirical benchmarks.">
+  <meta name="keywords" content="AmfyUI, ComfyUI mobile, termux diffusion, comfyui android, z-image turbo, dit mobile, galaxy s20 opencl, 1280x720 diffusion, on-device generative ai, ameva">
+  <meta name="author" content="uno-km">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://uno-km.github.io/termux-diffusion/amfyui.html">
+
+  <!-- Open Graph Metadata -->
+  <meta property="og:title" content="AmfyUI: ComfyUI Mobile DAG Studio &amp; 1280×720 DiT Showcase">
+  <meta property="og:description" content="Sovereign On-Device ComfyUI execution for Android Termux. Featuring Galaxy S20 Snapdragon 865 4-Season 1280x720 benchmarks and direct workflow JSON downloads.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://uno-km.github.io/termux-diffusion/amfyui.html">
+  <meta property="og:image" content="assets/gallery/season4_winter_q8_opencl_1280x720.png">
+
+  <link rel="stylesheet" href="/shared/lib-style.css">
+  <script src="/shared/components.js" defer></script>
+  <script src="/shared/i18n.js" defer></script>
+  <script src="/shared/i18n-translations.js" defer></script>
+  <script src="/shared/common.js" defer></script>
+
+  <style>
+    .amfy-acronym-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .acronym-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      position: relative;
+    }
+    .acronym-letter {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0369a1;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .acronym-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+    .acronym-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .workflow-download-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .wf-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--text-main);
+    }
+    .wf-btn:hover {
+      border-color: #0284c7;
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.05);
+    }
+    .wf-btn-primary {
+      background: #0284c7;
+      color: #fff;
+      border-color: #0284c7;
+    }
+    .wf-btn-primary:hover {
+      background: #0369a1;
+      color: #fff;
+    }
+    .seasons-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .season-card {
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .season-img-container {
+      position: relative;
+      background: #000;
+      text-align: center;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+    }
+    .season-img-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+    .season-img-container:hover img {
+      transform: scale(1.02);
+    }
+    .season-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 11px;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .season-badge-spring { background: #d97706; }
+    .season-badge-summer { background: #0284c7; }
+    .season-badge-autumn { background: #b45309; }
+    .season-badge-winter { background: #4f46e5; }
+    .season-resolution-tag {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      color: #38bdf8;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .season-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .season-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      color: var(--text-main);
+    }
+    .season-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .season-metrics span {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    .metric-time { background: #e0f2fe; color: #0369a1; font-weight: 700; }
+    .metric-accel { background: #dcfce7; color: #166534; font-weight: 700; }
+    .metric-backend { background: #f1f5f9; color: #475569; }
+    .metric-temp { background: #fef3c7; color: #92400e; }
+    .season-prompt {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.03);
+      padding: 8px 10px;
+      border-radius: 4px;
+      border-left: 3px solid #0284c7;
+      margin-bottom: 12px;
+      font-style: italic;
+      line-height: 1.4;
+      flex: 1;
+    }
+    .node-graph-mockup {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      overflow-x: auto;
+      color: #f3f4f6;
+    }
+  </style>
+</head>
+<body>
+  <ameva-header></ameva-header>
+  <div class="container">
+    <ameva-sidebar></ameva-sidebar>
+    <main class="content">
+
+      <!-- Breadcrumbs -->
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+        <a href="index.html" style="color: var(--text-muted); text-decoration: none;">Termux-Diffusion</a> &gt;
+        <span style="color: var(--text-main); font-weight: 600;">AmfyUI Mobile Studio &amp; ComfyUI DAG</span>
+      </div>
+
+      <h2>AmfyUI: ComfyUI Mobile DAG Studio &amp; Sovereign DiT Showcase</h2>
+      <p>Official user manual, architecture specification, and Galaxy S20 1280×720 HD 4-Season empirical benchmarks for <strong>AmfyUI</strong> — the native Android ComfyUI DAG runtime.</p>
+
+      <!-- Key Callout -->
+      <div class="alert alert-tip">
+        <span class="alert-title">🚀 Termux-Diffusion v2.0.0 Milestone: AmfyUI Production Release</span>
+        <p>AmfyUI eliminates the multi-gigabyte Python/PyTorch desktop footprint. Built directly on top of Android Bionic libc and native ARM64 NEON / Qualcomm Adreno OpenCL compute kernels, AmfyUI executes full ComfyUI JSON DAG node graphs natively on your smartphone with deterministic VRAM caps and Zero-LMK stability.</p>
+      </div>
+
+      <!-- SECTION 1: ACRONYM & ARCHITECTURAL FOUNDATION -->
+      <h3>1. Architectural Nomenclature: What is AmfyUI?</h3>
+      <p>AmfyUI is an engineered recursive backronym and structural design protocol tailored for sovereign edge computing:</p>
+
+      <div class="amfy-acronym-grid">
+        <div class="acronym-card">
+          <div class="acronym-letter">A</div>
+          <div class="acronym-title">AMEVA / Asynchronous</div>
+          <div class="acronym-desc">Tri-Engine asymmetric pipelining separating Text Encoder (CPU), DiT Backbone (GPU OpenCL/Vulkan), and Latent Decoder (Host CPU).</div>
+        </div>
+        <div class="acronym-card">
+          <div class="acronym-letter">M</div>
+          <div class="acronym-title">Mobile-First Memory</div>
+          <div class="acronym-desc">Strict hardware VRAM quota bounds (<code>--max-vram</code>) and dynamic layer streaming preventing Android Low Memory Killer (LMK) aborts.</div>
+        </div>
+        <div class="acronym-card">
+          <div class="acronym-letter">F</div>
+          <div class="acronym-title">Flow-Based DAG</div>
+          <div class="acronym-desc">100% ComfyUI UI &amp; API Prompt JSON compatibility with topological sorting and acyclic dependency resolution.</div>
+        </div>
+        <div class="acronym-card">
+          <div class="acronym-letter">Y</div>
+          <div class="acronym-title">Yield-Optimized Stream</div>
+          <div class="acronym-desc">Zero-copy mmap tensor paging and AXI bus streaming delivering maximal throughput on thermal-constrained mobile SoCs.</div>
+        </div>
+        <div class="acronym-card">
+          <div class="acronym-letter">UI</div>
+          <div class="acronym-title">User Interface Studio</div>
+          <div class="acronym-desc">Ultra-lightweight zero-dependency web canvas studio optimized for touch gestures and smartphone viewports (360px–430px).</div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: COMFYUI COMPATIBILITY MATRIX -->
+      <h3>2. ComfyUI Compatibility Matrix &amp; Operational Boundaries</h3>
+      <p>AmfyUI interprets and executes official ComfyUI JSON workflows directly without running heavy desktop Python daemons.</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ComfyUI Node Class</th>
+            <th>AmfyUI Native Mapping</th>
+            <th>Execution Backend</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>CLIPLoader</code> / <code>DualCLIPLoader</code></td>
+            <td>Qwen3-4B / CLIP ViT-L / T5-XXL (GGUF / FP8)</td>
+            <td>CPU NEON Multi-threading (4-8 Cores)</td>
+            <td><span class="badge" style="background: #166534; color: #fff;">100% Native</span></td>
+          </tr>
+          <tr>
+            <td><code>UNETLoader</code> / <code>DiffusionModelLoader</code></td>
+            <td>Z-Image Turbo 6.0B DiT, SDXS, SD 1.5, SDXL</td>
+            <td>Adreno OpenCL 2.0 / Mali Vulkan 1.1 / CPU SDOT</td>
+            <td><span class="badge" style="background: #166534; color: #fff;">100% Native</span></td>
+          </tr>
+          <tr>
+            <td><code>VAELoader</code> / <code>TAESDLoader</code></td>
+            <td>TAESD FLUX.1 (10MB) &amp; Standard SD VAE (FP16)</td>
+            <td>CPU NEON Vectorized Decode (Zero-VRAM Spike)</td>
+            <td><span class="badge" style="background: #166534; color: #fff;">100% Native</span></td>
+          </tr>
+          <tr>
+            <td><code>CLIPTextEncode</code></td>
+            <td>Prompt Conditioning &amp; Cross-Attention Vectorizer</td>
+            <td>Host RAM Shared Context</td>
+            <td><span class="badge" style="background: #166534; color: #fff;">100% Native</span></td>
+          </tr>
+          <tr>
+            <td><code>EmptyLatentImage</code></td>
+            <td>Spatial Latent Tensor Allocator (up to 1280×720)</td>
+            <td>Zero-Copy Buffer Pool</td>
+            <td><span class="badge" style="background: #166534; color: #fff;">100% Native</span></td>
+          </tr>
+          <tr>
+            <td><code>KSampler</code> / <code>KSamplerAdvanced</code></td>
+            <td>Res_Multistep, Euler, Euler_A, DPM++ 2M, LCM</td>
+            <td>Tiled Flash Attention ODE Solver</td>
+            <td><span class="badge" style="background: #166534; color: #fff;">100% Native</span></td>
+          </tr>
+          <tr>
+            <td><code>VAEDecode</code> / <code>VAEEncode</code></td>
+            <td>Latent-to-RGB Reconstruction / Img2Img Tiler</td>
+            <td>Spatial Tiled Decoder (<code>--vae-tiling</code>)</td>
+            <td><span class="badge" style="background: #166534; color: #fff;">100% Native</span></td>
+          </tr>
+          <tr>
+            <td><code>SaveImage</code></td>
+            <td>PNG Export &amp; Android MediaStore Broadcaster</td>
+            <td>Samsung Gallery Auto-Sync (Direct DCIM/Pictures)</td>
+            <td><span class="badge" style="background: #166534; color: #fff;">100% Native</span></td>
+          </tr>
+          <tr>
+            <td><code>LoraLoader</code></td>
+            <td>Dynamic Weight Additive Patching</td>
+            <td>GGML Layer Merging</td>
+            <td><span class="badge" style="background: #0284c7; color: #fff;">Supported</span></td>
+          </tr>
+          <tr>
+            <td><code>Custom Python C++ Nodes</code></td>
+            <td>External desktop extensions requiring GCC/CUDA</td>
+            <td>Fallback to AMEVA-Cluster RPC Offloading</td>
+            <td><span class="badge" style="background: #eab308; color: #000;">Cluster Offload</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- SECTION 3: VISUAL NODE GRAPH & UI MANUAL -->
+      <h3>3. Visual Node Orchestration &amp; User Interface</h3>
+      <p>AmfyUI runs an interactive web studio right inside Android Chrome or Samsung Internet. Launch the server from Termux terminal:</p>
+
+      <pre><code># 1. Launch AmfyUI Mobile Studio (Default Port: 11553)
+termux-diffusion ui
+
+# Or specify custom port and network interface:
+termux-diffusion ui --port 8188 --host 0.0.0.0</code></pre>
+
+      <div class="node-graph-mockup">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #374151; padding-bottom: 10px; margin-bottom: 15px;">
+          <div style="font-weight: 700; font-size: 14px; color: #38bdf8;">AmfyUI Mobile Studio &bull; Visual DAG Execution Flow</div>
+          <div style="font-size: 12px; color: #9ca3af; font-family: monospace;">Device: Galaxy S20 (Snapdragon 865) | VRAM Quota: 2.0 GB</div>
+        </div>
+
+        <svg viewBox="0 0 880 240" style="width: 100%; height: auto; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+          <!-- Node 1: Model & LLM Loaders -->
+          <g transform="translate(10, 20)">
+            <rect width="180" height="90" rx="6" fill="#1f2937" stroke="#3b82f6" stroke-width="2"/>
+            <rect width="180" height="24" rx="6" fill="#3b82f6"/>
+            <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">DiffusionModelLoader</text>
+            <text x="10" y="44" fill="#9ca3af" font-size="10">Model: z_image_turbo-Q8_0</text>
+            <text x="10" y="60" fill="#9ca3af" font-size="10">Backend: GPUOpenCL</text>
+            <text x="10" y="76" fill="#10b981" font-size="10">VRAM Quota: 2.0 GB Max</text>
+            <circle cx="180" cy="55" r="5" fill="#3b82f6"/>
+          </g>
+
+          <g transform="translate(10, 130)">
+            <rect width="180" height="90" rx="6" fill="#1f2937" stroke="#8b5cf6" stroke-width="2"/>
+            <rect width="180" height="24" rx="6" fill="#8b5cf6"/>
+            <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">CLIPLoader (Qwen3-4B)</text>
+            <text x="10" y="44" fill="#9ca3af" font-size="10">Weights: Qwen3-4B-Q2_K</text>
+            <text x="10" y="60" fill="#9ca3af" font-size="10">Backend: CPU 4-Cores</text>
+            <text x="10" y="76" fill="#10b981" font-size="10">Zero VRAM Footprint</text>
+            <circle cx="180" cy="165" r="5" fill="#8b5cf6"/>
+          </g>
+
+          <!-- Node 2: Conditioning & Latent -->
+          <g transform="translate(230, 75)">
+            <rect width="180" height="110" rx="6" fill="#1f2937" stroke="#ec4899" stroke-width="2"/>
+            <rect width="180" height="24" rx="6" fill="#ec4899"/>
+            <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">CLIPTextEncode &amp; Latent</text>
+            <text x="10" y="44" fill="#9ca3af" font-size="10">Resolution: 1280 × 720</text>
+            <text x="10" y="60" fill="#9ca3af" font-size="10">Guidance Scale: 3.5</text>
+            <text x="10" y="76" fill="#9ca3af" font-size="10">Tokens: 3,600 Latent</text>
+            <text x="10" y="92" fill="#38bdf8" font-size="10">Flow Shift: 3.0</text>
+            <circle cx="0" cy="105" r="5" fill="#8b5cf6"/>
+            <circle cx="180" cy="130" r="5" fill="#ec4899"/>
+          </g>
+
+          <!-- Node 3: KSampler Core -->
+          <g transform="translate(450, 45)">
+            <rect width="190" height="150" rx="6" fill="#1f2937" stroke="#10b981" stroke-width="2"/>
+            <rect width="190" height="24" rx="6" fill="#10b981"/>
+            <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">KSampler (Flash Attention)</text>
+            <text x="10" y="44" fill="#9ca3af" font-size="10">Steps: 8 Iterations</text>
+            <text x="10" y="60" fill="#9ca3af" font-size="10">Sampler: res_multistep</text>
+            <text x="10" y="76" fill="#9ca3af" font-size="10">Scheduler: simple</text>
+            <text x="10" y="92" fill="#9ca3af" font-size="10">CFG Scale: 1.0</text>
+            <text x="10" y="108" fill="#eab308" font-size="10">Adreno OpenCL Speedup: 2.35×</text>
+            <text x="10" y="124" fill="#10b981" font-size="10">NaN / Zero: 0 / 0 (Forensic)</text>
+            <circle cx="0" cy="75" r="5" fill="#3b82f6"/>
+            <circle cx="0" cy="125" r="5" fill="#ec4899"/>
+            <circle cx="190" cy="120" r="5" fill="#10b981"/>
+          </g>
+
+          <!-- Node 4: VAE Decode & MediaStore -->
+          <g transform="translate(680, 65)">
+            <rect width="190" height="110" rx="6" fill="#1f2937" stroke="#f59e0b" stroke-width="2"/>
+            <rect width="190" height="24" rx="6" fill="#f59e0b"/>
+            <text x="10" y="17" fill="#fff" font-size="11" font-weight="bold">VAEDecode &amp; SaveImage</text>
+            <text x="10" y="44" fill="#9ca3af" font-size="10">TAESD FLUX.1 (10MB)</text>
+            <text x="10" y="60" fill="#9ca3af" font-size="10">Output: 1280×720 PNG</text>
+            <text x="10" y="76" fill="#9ca3af" font-size="10">Gallery Auto-Sync: Active</text>
+            <text x="10" y="92" fill="#10b981" font-size="10">Bit Depth: 24-bit TrueColor</text>
+            <circle cx="0" cy="100" r="5" fill="#10b981"/>
+          </g>
+
+          <!-- Connection Lines -->
+          <path d="M 190 75 Q 320 75 450 120" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4"/>
+          <path d="M 190 185 Q 210 185 230 180" fill="none" stroke="#8b5cf6" stroke-width="2"/>
+          <path d="M 410 170 Q 430 170 450 170" fill="none" stroke="#ec4899" stroke-width="2"/>
+          <path d="M 640 165 Q 660 165 680 165" fill="none" stroke="#10b981" stroke-width="2"/>
+        </svg>
+      </div>
+
+      <!-- SECTION 4: GALAXY S20 4-SEASONS BENCHMARK -->
+      <h3>4. Galaxy S20 (Snapdragon 865) 1280×720 HD 4-Season Master Benchmark</h3>
+      <p>Physical test run (Jira SCRUM-481) executed on Samsung Galaxy S20 5G (Qualcomm Snapdragon 865 KONA, 12GB LPDDR5 RAM, Adreno 650 GPU OpenCL 2.0). Generating wide 16:9 high-definition 1280×720 portrait photography across four seasonal conditions.</p>
+
+      <div class="alert alert-note">
+        <span class="alert-title">🔬 Key Engineering Findings from SCRUM-481</span>
+        <ul>
+          <li><strong>2.35× Hardware Acceleration via OpenCL Flash Attention</strong>: GPU execution reduced 8-step inference latency from 9,022s (CPU baseline) down to 3,835s.</li>
+          <li><strong>Cortex-A77 SDOT Hardware Advantage</strong>: On CPU, Q8_0 (8,534s) executed 488 seconds faster than Q4_0 (9,022s) because ARMv8.2-A hardware <code>SDOT</code> instructions execute 4 FMAs per cycle without software bit-shifting overhead.</li>
+          <li><strong>Thermal Efficiency</strong>: OpenCL GPU execution operated at <strong>41.4°C–41.8°C</strong>, which is ~6°C cooler than full CPU saturation (47.8°C).</li>
+          <li><strong>Tensor Forensic Integrity</strong>: 32 individual checkpoint tensors across 4 stages recorded exactly <strong>NaN=0, Zero=0</strong>.</li>
+        </ul>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Season &amp; Stage</th>
+            <th>Weight Quant</th>
+            <th>Execution Backend</th>
+            <th>Total Elapsed</th>
+            <th>Step Latency</th>
+            <th>GPU Speedup</th>
+            <th>Peak Thermal</th>
+            <th>Forensic Sanity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>🌸 1. Spring (봄)</strong></td>
+            <td>Q4_0 (3.53 GB)</td>
+            <td>CPU (ARM NEON)</td>
+            <td>9,022s (2h 30m)</td>
+            <td>~1,180s / step</td>
+            <td>1.00× (Baseline)</td>
+            <td>47.8°C</td>
+            <td><span class="badge" style="background:#166534; color:#fff;">NaN=0 / Zero=0</span></td>
+          </tr>
+          <tr>
+            <td><strong>☀️ 2. Summer (여름)</strong></td>
+            <td>Q4_0 (3.53 GB)</td>
+            <td>Adreno OpenCL 2.0</td>
+            <td><strong>3,835s (1h 03m)</strong></td>
+            <td>~468s / step</td>
+            <td><strong>2.35× Accelerated</strong></td>
+            <td><strong>41.4°C</strong></td>
+            <td><span class="badge" style="background:#166534; color:#fff;">NaN=0 / Zero=0</span></td>
+          </tr>
+          <tr>
+            <td><strong>🍂 3. Autumn (가을)</strong></td>
+            <td>Q8_0 (6.13 GB)</td>
+            <td>CPU (ARM SDOT)</td>
+            <td>8,534s (2h 22m)</td>
+            <td>~1,060s / step</td>
+            <td>1.06× (vs CPU Q4)</td>
+            <td>47.1°C</td>
+            <td><span class="badge" style="background:#166534; color:#fff;">NaN=0 / Zero=0</span></td>
+          </tr>
+          <tr>
+            <td><strong>❄️ 4. Winter (겨울)</strong></td>
+            <td>Q8_0 (6.13 GB)</td>
+            <td>Adreno OpenCL 2.0</td>
+            <td><strong>3,895s (1h 04m)</strong></td>
+            <td>~475s / step</td>
+            <td><strong>2.19× Accelerated</strong></td>
+            <td><strong>41.8°C</strong></td>
+            <td><span class="badge" style="background:#166534; color:#fff;">NaN=0 / Zero=0</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- SECTION 5: 4-SEASONS GALLERY & ARTIFACTS -->
+      <h3>5. 4-Season 1280×720 HD Portrait Gallery &amp; Prompt Engineering</h3>
+      <p>Directly rendered on Samsung Galaxy S20 without upscaling. All images are 1280×720 24-bit TrueColor PNG artifacts generated using 8-step Z-Image Turbo with TAESD VAE.</p>
+
+      <div class="seasons-grid">
+        <!-- Spring Card -->
+        <div class="season-card">
+          <div class="season-img-container">
+            <span class="season-badge season-badge-spring">Stage 1 &bull; Spring</span>
+            <span class="season-resolution-tag">1280 × 720 HD</span>
+            <img src="assets/gallery/season1_spring_q4_cpu_1280x720.png" alt="Galaxy S20 Spring 1280x720 Render" loading="lazy">
+          </div>
+          <div class="season-body">
+            <div class="season-title">Spring Sunlight &bull; Yellow One-Piece Dress</div>
+            <div class="season-metrics">
+              <span class="metric-time">⏱️ 9,022s (CPU)</span>
+              <span class="metric-backend">z_image_turbo Q4_0</span>
+              <span class="metric-temp">47.8°C</span>
+              <span class="metric-accel">Mean [156.7, 147.2, 140.9]</span>
+            </div>
+            <div class="season-prompt">
+              "A stunningly beautiful 20-year-old Korean woman smiling warmly on a sunny spring day, exquisite beautiful facial features, highly detailed face, wearing an elegant yellow dress, soft spring sunlight, cherry blossom petals falling, cinematic lighting, photorealistic 8k, landscape 16:9"
+            </div>
+            <a href="workflows/test1_s20_cpu_spring.json" download class="wf-btn">
+              <span>📥 Download Spring Workflow (.json)</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Summer Card -->
+        <div class="season-card">
+          <div class="season-img-container">
+            <span class="season-badge season-badge-summer">Stage 2 &bull; Summer</span>
+            <span class="season-resolution-tag">1280 × 720 HD</span>
+            <img src="assets/gallery/season2_summer_q4_opencl_1280x720.png" alt="Galaxy S20 Summer 1280x720 Render" loading="lazy">
+          </div>
+          <div class="season-body">
+            <div class="season-title">Summer Coastal &bull; Airy Beach Dress</div>
+            <div class="season-metrics">
+              <span class="metric-time">⏱️ 3,835s (GPU)</span>
+              <span class="metric-accel">⚡ 2.35× OpenCL Speedup</span>
+              <span class="metric-backend">z_image_turbo Q4_0</span>
+              <span class="metric-temp">41.4°C Cool</span>
+            </div>
+            <div class="season-prompt">
+              "A stunningly beautiful 20-year-old Korean woman smiling refreshingly on a bright summer beach, exquisite beautiful facial features, highly detailed face, wearing stylish airy summer dress, vibrant oceanic breeze, bright sunny coastal atmosphere, cinematic lighting, photorealistic 8k, landscape 16:9"
+            </div>
+            <a href="workflows/user_z_image_turbo_q4.json" download class="wf-btn">
+              <span>📥 Download Summer Workflow (.json)</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Autumn Card -->
+        <div class="season-card">
+          <div class="season-img-container">
+            <span class="season-badge season-badge-autumn">Stage 3 &bull; Autumn</span>
+            <span class="season-resolution-tag">1280 × 720 HD</span>
+            <img src="assets/gallery/season3_autumn_q8_cpu_1280x720.png" alt="Galaxy S20 Autumn 1280x720 Render" loading="lazy">
+          </div>
+          <div class="season-body">
+            <div class="season-title">Autumn Foliage &bull; Knit Sweater</div>
+            <div class="season-metrics">
+              <span class="metric-time">⏱️ 8,534s (CPU SDOT)</span>
+              <span class="metric-accel">⚡ Q8 Faster than Q4</span>
+              <span class="metric-backend">z_image_turbo Q8_0</span>
+              <span class="metric-temp">47.1°C</span>
+            </div>
+            <div class="season-prompt">
+              "A stunningly beautiful 20-year-old Korean woman smiling peacefully in a scenic autumn park, exquisite beautiful facial features, highly detailed face, wearing a cozy autumn knit sweater, golden afternoon sunlight, colorful maple foliage, cinematic lighting, photorealistic 8k, landscape 16:9"
+            </div>
+            <a href="workflows/user_z_image_turbo_q4.json" download class="wf-btn">
+              <span>📥 Download Autumn Workflow (.json)</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Winter Card -->
+        <div class="season-card">
+          <div class="season-img-container">
+            <span class="season-badge season-badge-winter">Stage 4 &bull; Winter</span>
+            <span class="season-resolution-tag">1280 × 720 HD</span>
+            <img src="assets/gallery/season4_winter_q8_opencl_1280x720.png" alt="Galaxy S20 Winter 1280x720 Render" loading="lazy">
+          </div>
+          <div class="season-body">
+            <div class="season-title">Winter Snowy &bull; Elegant Coat &amp; Scarf</div>
+            <div class="season-metrics">
+              <span class="metric-time">⏱️ 3,895s (GPU)</span>
+              <span class="metric-accel">⚡ 2.19× OpenCL Speedup</span>
+              <span class="metric-backend">z_image_turbo Q8_0</span>
+              <span class="metric-temp">41.8°C Cool</span>
+            </div>
+            <div class="season-prompt">
+              "A stunningly beautiful 20-year-old Korean woman smiling warmly on a crisp winter day, exquisite beautiful facial features, highly detailed face, wearing an elegant winter coat and scarf, soft winter sunlight, snowy winter atmosphere, cinematic lighting, photorealistic 8k, landscape 16:9"
+            </div>
+            <a href="workflows/test2_s20_opencl_winter.json" download class="wf-btn">
+              <span>📥 Download Winter Workflow (.json)</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 6: WORKFLOW JSON DOWNLOAD HUB -->
+      <h3>6. ComfyUI Workflow JSON Download &amp; Direct CLI Reproduction</h3>
+      <p>Directly load these workflow files into AmfyUI Mobile Studio or execute them unattended via CLI:</p>
+
+      <div class="workflow-download-bar">
+        <a href="workflows/test1_s20_cpu_spring.json" download class="wf-btn wf-btn-primary">
+          <span>📦 Spring 1280×720 CPU Workflow JSON (14.5 KB)</span>
+        </a>
+        <a href="workflows/test2_s20_opencl_winter.json" download class="wf-btn wf-btn-primary">
+          <span>📦 Winter 1280×720 GPU OpenCL Workflow JSON (14.4 KB)</span>
+        </a>
+        <a href="workflows/user_z_image_turbo_q4.json" download class="wf-btn">
+          <span>📦 Standard Z-Image Turbo Q4 DAG JSON (13.5 KB)</span>
+        </a>
+      </div>
+
+      <h4>Executing Workflow via Terminal CLI</h4>
+      <pre><code># Run workflow file end-to-end with real-time progress
+termux-diffusion workflow run workflows/test2_s20_opencl_winter.json \
+  --device opencl \
+  --output-dir /sdcard/Pictures/TermuxDiffusion
+
+# Validate and inspect workflow topology before execution
+termux-diffusion workflow inspect workflows/test1_s20_cpu_spring.json</code></pre>
+
+      <h4>Executing Workflow via Python SDK</h4>
+      <pre><code>from termux_diffusion.workflow import WorkflowExecutor
+
+# Execute ComfyUI DAG programmatically
+executor = WorkflowExecutor()
+result_image = executor.execute_file(
+    "workflows/test2_s20_opencl_winter.json",
+    device="opencl",
+    output_dir="/sdcard/Pictures/TermuxDiffusion"
+)
+print(f"Generated 1280x720 TrueColor PNG: {result_image}")</code></pre>
+
+    </main>
+  </div>
+</body>
+</html>
