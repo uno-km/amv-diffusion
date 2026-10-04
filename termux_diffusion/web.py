@@ -217,7 +217,11 @@ def _start_quick_generation(body: Dict[str, Any], job_id: Optional[str] = None, 
 
     def worker():
         try:
-            with TermuxExecutionGuard(enable_wake_lock=True, boost_priority=True):
+            safe_mode = bool(body.get("safe_mode", False) or body.get("keep_apps_alive", False))
+            raw_duty = body.get("gpu_duty_cycle")
+            gpu_duty_cycle = int(raw_duty) if raw_duty is not None else None
+
+            with TermuxExecutionGuard(enable_wake_lock=True, boost_priority=not safe_mode, safe_mode=safe_mode):
                 prompt = body.get("prompt", "")
                 model = body.get("model", "realistic")
                 device = body.get("device", "auto")
@@ -240,6 +244,8 @@ def _start_quick_generation(body: Dict[str, Any], job_id: Optional[str] = None, 
                     height=height,
                     seed=seed,
                     detail_faces=detail_faces,
+                    safe_mode=safe_mode,
+                    gpu_duty_cycle=gpu_duty_cycle,
                     progress_callback=_update_progress,
                     progress=True
                 )
@@ -306,7 +312,8 @@ def _start_workflow_execution(body: Dict[str, Any], job_id: Optional[str] = None
 
     def wf_worker():
         try:
-            with TermuxExecutionGuard(enable_wake_lock=True, boost_priority=True):
+            safe_mode = bool(body.get("safe_mode", False) or body.get("keep_apps_alive", False))
+            with TermuxExecutionGuard(enable_wake_lock=True, boost_priority=not safe_mode, safe_mode=safe_mode):
                 if "workflow_id" in body and "workflow" not in body and "nodes" not in body:
                     wf_id = str(body["workflow_id"])
                     wf_data = get_builtin_workflow(wf_id)
@@ -1728,6 +1735,17 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
             <span class="slider"></span>
           </label>
         </div>
+
+        <div class="switch-row" style="margin-top: 6px;" title="GPU 90% 상한 제어 및 프로세스 우선순위 조정으로 화면 렌더링(SurfaceFlinger)과 백그라운드 앱 튕김 방지">
+          <div>
+            <span style="font-weight: 600; font-size: 14px;">Safe Mode (앱/화면 생존 가드)</span>
+            <div style="font-size: 11px; color: var(--text-muted);">GPU 90% Cap &amp; Zero-LMK VAE Tiling</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="safeModeSwitch" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
     </div>
 
@@ -2944,12 +2962,16 @@ class DiffusionWebHandler(BaseHTTPRequestHandler):
 
       if (activeTab === 'quick') {
         endpoint = '/api/generate';
+        const safeModeElem = document.getElementById('safeModeSwitch');
+        const isSafe = safeModeElem ? safeModeElem.checked : true;
         payload = {
           prompt: document.getElementById('promptInput').value,
           model: currentModel,
           steps: parseInt(document.getElementById('stepsInput').value),
           cfg: parseFloat(document.getElementById('cfgInput').value),
           detail_faces: document.getElementById('detailerSwitch').checked,
+          safe_mode: isSafe,
+          gpu_duty_cycle: isSafe ? 90 : 100,
           device: 'gpu'
         };
       } else {

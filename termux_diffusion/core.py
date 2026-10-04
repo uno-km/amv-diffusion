@@ -6,6 +6,7 @@ import logging
 import os
 import queue
 import re
+import signal
 import subprocess
 import sys
 import threading
@@ -57,15 +58,85 @@ PROGRESS_RE = re.compile(
 
 
 def _read_sys_gpu_busy() -> Optional[int]:
-    """Query Linux/Android kernel sysfs GPU load percentage."""
-    try:
-        p = Path("/sys/kernel/gpu/gpu_busy")
-        if p.is_file():
-            val = p.read_text().strip().replace("%", "")
-            return int(val)
-    except Exception:
-        pass
+    """Query Linux/Android kernel sysfs GPU load percentage across Adreno, Mali, and generic nodes."""
+    paths = [
+        Path("/sys/kernel/gpu/gpu_busy"),
+        Path("/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage"),
+        Path("/sys/class/kgsl/kgsl-3d0/devfreq/gpu_load"),
+        Path("/sys/class/misc/mali0/device/utilization"),
+        Path("/sys/devices/platform/13040000.mali/utilization"),
+    ]
+    for p in paths:
+        try:
+            if p.is_file():
+                raw = p.read_text().strip().replace("%", "").split()[0]
+                if raw.isdigit():
+                    return int(raw)
+        except Exception:
+            continue
     return None
+
+
+class GPUDutyCycleController:
+    """Closed-loop GPU Duty Cycle & SurfaceFlinger/App preservation controller.
+
+    Prevents GPU 100% saturation by injecting inter-step micro idle gaps (time-slicing),
+    enabling Android SurfaceFlinger to render frames at 60/120Hz and preventing LMK SIGKILL.
+    """
+
+    def __init__(self, target_duty_cycle: int = 90, enabled: bool = False):
+        self.target_duty_cycle = max(50, min(100, target_duty_cycle))
+        self.enabled = enabled or (self.target_duty_cycle < 100)
+        self.last_step = 0
+        self.step_start_time = time.time()
+        self.accumulated_sleep = 0.0
+
+    def on_step(self, step: int, proc_pid: Optional[int] = None) -> float:
+        """Called upon each denoising step completion. Injects dynamic gap if needed."""
+        if not self.enabled or self.target_duty_cycle >= 100:
+            return 0.0
+
+        if step <= self.last_step:
+            return 0.0
+
+        now = time.time()
+        step_duration = max(0.01, now - self.step_start_time)
+        self.step_start_time = now
+        self.last_step = step
+
+        # Calculate duty cycle gap:
+        # target_duty = (compute_time / (compute_time + gap_time)) * 100
+        # gap_time = compute_time * (100 - target_duty) / target_duty
+        ratio = (100 - self.target_duty_cycle) / float(self.target_duty_cycle)
+        gap_sec = min(0.5, max(0.015, step_duration * ratio))
+
+        # Check real-time GPU load if available
+        gpu_busy = _read_sys_gpu_busy()
+        if gpu_busy is not None and gpu_busy > self.target_duty_cycle:
+            excess = (gpu_busy - self.target_duty_cycle) / 10.0
+            gap_sec = min(0.8, gap_sec * (1.0 + excess))
+
+        # Inject micro-gap via SIGSTOP/SIGCONT if on Linux/Android and PID valid
+        injected = 0.0
+        if proc_pid and hasattr(os, "kill") and hasattr(signal, "SIGSTOP") and hasattr(signal, "SIGCONT"):
+            try:
+                os.kill(proc_pid, signal.SIGSTOP)
+                time.sleep(gap_sec)
+                os.kill(proc_pid, signal.SIGCONT)
+                injected = gap_sec
+            except OSError:
+                time.sleep(gap_sec)
+                injected = gap_sec
+        else:
+            time.sleep(gap_sec)
+            injected = gap_sec
+
+        self.accumulated_sleep += injected
+        logger.debug(
+            "[DutyCycleController] Step %d: Injected %.3fs idle gap (Target: %d%%, Kernel GPU: %s%%)",
+            step, injected, self.target_duty_cycle, gpu_busy
+        )
+        return injected
 
 
 def _read_process_rss_mb(pid: int) -> Optional[float]:
@@ -413,6 +484,9 @@ def generate(
     extra_args: Optional[List[str]] = None,
     isolate_text_encoder: bool = False,
     sequential_stages: bool = False,
+    safe_mode: bool = False,
+    keep_apps_alive: bool = False,
+    gpu_duty_cycle: Optional[int] = None,
     _cancel_event: Optional[threading.Event] = None,
     _proc_holder: Optional[list] = None,
     **extra_kwargs: Any,
@@ -448,6 +522,9 @@ def generate(
         wake_lock: Whether to acquire Android CPU WakeLock during generation.
         low_ram_guard: Whether to verify available memory before starting inference.
         auto_provision: Whether to automatically compile the native C++ engine if missing.
+        safe_mode: Preserve SurfaceFlinger 60/120fps UI and background apps (nice +10, VAE Tiling, 90% GPU duty cycle).
+        keep_apps_alive: Alias for safe_mode.
+        gpu_duty_cycle: GPU load percentage cap (e.g. 90 for 90% duty cycle, 10% idle gap for SurfaceFlinger).
         timeout: Maximum inference timeout in seconds (default: 1800s / 30m).
     
     Returns:
@@ -455,6 +532,23 @@ def generate(
     """
     if not prompt or not str(prompt).strip():
         raise ValueError("Prompt must not be empty.")
+
+    if keep_apps_alive:
+        safe_mode = True
+
+    if safe_mode:
+        if gpu_duty_cycle is None:
+            gpu_duty_cycle = 90
+        vae_tiling = True
+        logger.info(
+            "[SafeMode] Active: GPU duty cycle capped at %d%%, VAE tiling active, priority demoted to preserve SurfaceFlinger and background apps.",
+            gpu_duty_cycle
+        )
+
+    duty_controller = GPUDutyCycleController(
+        target_duty_cycle=gpu_duty_cycle if gpu_duty_cycle is not None else 100,
+        enabled=(gpu_duty_cycle is not None and gpu_duty_cycle < 100) or safe_mode
+    )
 
     device_mode = str(device or "auto").lower().strip()
     if device_mode not in ("cpu", "gpu", "opencl", "vulkan", "npu", "tpu", "auto"):
@@ -968,7 +1062,7 @@ def generate(
     start_time = time.time()
 
     # 6. Execute with TermuxExecutionGuard (Android WakeLock + Niceness priority protection)
-    with TermuxExecutionGuard(enable_wake_lock=wake_lock, boost_priority=True):
+    with TermuxExecutionGuard(enable_wake_lock=wake_lock, boost_priority=not safe_mode, safe_mode=safe_mode):
         process = None
         try:
             popen_kwargs = {
@@ -976,6 +1070,13 @@ def generate(
                 "stderr": subprocess.STDOUT,
                 "env": env,
             }
+            if safe_mode and hasattr(os, "nice") and sys.platform != "win32":
+                def _demote_priority():
+                    try:
+                        os.nice(10)
+                    except Exception:
+                        pass
+                popen_kwargs["preexec_fn"] = _demote_priority
 
             process = subprocess.Popen(cmd, **popen_kwargs)
             if _proc_holder is not None:
@@ -1078,6 +1179,8 @@ def generate(
                         elapsed_seconds=round(time.time() - start_time, 2),
                     )
                     notify_progress(info)
+                    if duty_controller.enabled:
+                        duty_controller.on_step(cur_step, proc_pid=pid)
                 else:
                     if not progress and not json_progress:
                         if "step" in lower_seg or "%" in lower_seg or "sampling" in lower_seg:

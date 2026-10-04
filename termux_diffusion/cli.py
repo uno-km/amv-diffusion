@@ -94,6 +94,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     gen_parser.add_argument("--sampling-method", type=str, dest="sampler", help=argparse.SUPPRESS)
     gen_parser.add_argument("--cfg-scale", type=float, dest="cfg", help=argparse.SUPPRESS)
     gen_parser.add_argument("--isolate-text-encoder", "--sequential-stages", dest="isolate_text_encoder", action="store_true", default=False, help="Enable 2-stage memory isolation: execute text encoder independently, kill process to recover RAM, then execute DiT inference")
+    gen_parser.add_argument("--safe-mode", action="store_true", default=False, help="Preserve SurfaceFlinger 60/120fps UI and background apps (nice +10, VAE Tiling, 90% GPU duty cycle)")
+    gen_parser.add_argument("--keep-apps-alive", action="store_true", default=False, help="Alias for --safe-mode")
+    gen_parser.add_argument("--gpu-duty-cycle", type=int, default=None, help="GPU load percentage cap (e.g. 90 for 90% duty cycle, 10% idle gap for SurfaceFlinger)")
 
     # install command
     inst_parser = subparsers.add_parser("install", help="Provision native Bionic CPU engine (sd-cli-cpu & libomp.so)")
@@ -252,6 +255,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                 progress_file=getattr(args, "progress_file", None),
                 extra_args=unknown_args if unknown_args else None,
                 isolate_text_encoder=getattr(args, "isolate_text_encoder", False),
+                safe_mode=getattr(args, "safe_mode", False),
+                keep_apps_alive=getattr(args, "keep_apps_alive", False),
+                gpu_duty_cycle=getattr(args, "gpu_duty_cycle", None),
                 auto_provision=True
             )
             return 0 if res.path.exists() else 1

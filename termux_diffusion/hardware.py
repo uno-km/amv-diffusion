@@ -887,15 +887,22 @@ class TermuxExecutionGuard:
 
     Prevents CPU sleep / Doze throttling during model inference and restores state cleanly.
     """
-    def __init__(self, enable_wake_lock: bool = True, boost_priority: bool = True):
+    def __init__(self, enable_wake_lock: bool = True, boost_priority: bool = True, safe_mode: bool = False):
         self.is_termux_env = is_termux() or os.path.exists("/data/data/com.termux")
         self.enable_wake_lock = enable_wake_lock
-        self.boost_priority = boost_priority
+        self.boost_priority = boost_priority and not safe_mode
+        self.safe_mode = safe_mode
         self.wake_lock_acquired = False
 
     def __enter__(self):
         if self.is_termux_env:
-            if self.boost_priority:
+            if self.safe_mode:
+                try:
+                    os.nice(10)
+                    logger.info("[TermuxGuard] Safe Mode active: Process niceness demoted (+10) to preserve SurfaceFlinger and background apps")
+                except Exception:
+                    pass
+            elif self.boost_priority:
                 try:
                     os.nice(-20)
                     logger.info("[TermuxGuard] Process niceness boosted to highest priority (-20)")
