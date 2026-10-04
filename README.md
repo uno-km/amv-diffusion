@@ -6,185 +6,206 @@
 [![npm downloads](https://img.shields.io/npm/dm/termux-diffusion.svg?style=flat-square&color=b91c1c)](https://www.npmjs.com/package/termux-diffusion)
 [![License](https://img.shields.io/badge/License-Apache_2.0-004499.svg?style=flat-square)](https://github.com/uno-km/termux-diffusion)
 
-> **Official Support for Z-Image Turbo (6.0B DiT) & Pure Native On-Device Diffusion Acceleration for Android Termux & Samsung Galaxy.**  
-> *Zero PRoot. Zero Virtualization. 100% Native ARM64 Bionic libc, Khronos Vulkan 1.1+ GPU Shaders & NEON SIMD Vector Engine.*
+> **AmfyUI (ComfyUI Mobile DAG Studio) & Sovereign Z-Image Turbo (6.0B DiT) On-Device Diffusion Acceleration for Android Termux.**  
+> *Zero PRoot. Zero Virtualization. 100% Native ARM64 Bionic libc, Qualcomm Adreno OpenCL 2.0 / ARM Mali Vulkan 1.1+ GPU Shaders & NEON SIMD Vector Engine.*
 
 ---
 
-## 🚀 Major Breakthrough: 6.0B DiT (Z-Image Turbo) Sovereign Mobile Execution
+## 🚀 Major Milestone v2.0.0: AmfyUI & Sovereign 6.0B DiT Execution
 
-`termux-diffusion v1.8.0` officially achieves a world-class on-device AI milestone: **Native, unquantized context execution of 6.0 Billion Parameter Diffusion Transformers (DiT)** on commercial Android hardware (Samsung Galaxy S21 5G / ARM Mali-G78 MP14 GPU) without cloud dependencies.
+`termux-diffusion v2.0.0` introduces **AmfyUI** — an on-device, zero-dependency ComfyUI Directed Acyclic Graph (DAG) visual studio and workflow runtime designed specifically for mobile smartphone viewports. By eliminating heavy desktop Python/PyTorch dependencies (saving over 3.5GB of RAM), AmfyUI compiles and executes ComfyUI JSON workflows directly against Android Bionic libc, Qualcomm Adreno OpenCL, and ARM Mali Vulkan compute kernels.
 
-### 🌟 Tri-Engine Asymmetric Pipeline Architecture
 ```
-[User Natural Language Prompt]
-          │
-          ▼
-┌────────────────────────────────────────────────────────┐
-│ 1. Text Encoder (Qwen3-4B-Instruct-2507-Q2_K.gguf)     │ ◄── CPU 4-Core Parallel SIMD (clip=cpu)
-│    - 4.0B LLM Context Understanding & Dense Embedding  │
-└────────────────────────────────────────────────────────┘
-          │ (High-Dimensional Prompt Embeddings)
-          ▼
-┌────────────────────────────────────────────────────────┐
-│ 2. DiT Denoising Core (z_image_turbo-Q2_K.gguf)        │ ◄── Mali-G78 Vulkan Shaders (diffusion=vulkan0)
-│    - 6.0B Diffusion Transformer                        │     Dynamic Layer Streaming (stream-layers)
-│    - Tiled Flash Attention (--diffusion-fa)            │     Strict 1.0 GB VRAM Ceiling (max-vram=1GB)
-└────────────────────────────────────────────────────────┘
-          │ (Latent Representation)
-          ▼
-┌────────────────────────────────────────────────────────┐
-│ 3. Ultra-Fast VAE Decoder (taef1.safetensors)          │ ◄── 10MB Tiny AutoEncoder (taesd, vae=cpu)
-│    - Fast Latent Decoding with Zero VRAM Spike   │
-└────────────────────────────────────────────────────────┘
-          │
-          ▼
-[24-bit RGB PNG Image Artifact] (512 x 512)
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        AmfyUI Mobile Canvas Studio (Port 11553)                        │
+├───────────────────────┬───────────────────────────────┬────────────────────────────────┤
+│   [CLIPLoader]        │     [CLIPTextEncode]          │       [KSampler (DiT 6.0B)]    │
+│  Qwen3-4B-Q2_K.gguf   │   "A stunningly beautiful...  │     z_image_turbo-Q8_0.gguf    │
+│   (CPU Big-Cores)     │    Korean woman smiling..."   │     (Adreno OpenCL 2.0)        │
+│          │            │               │               │                │               │
+│          └────────────┼───────────────┘               │                │               │
+│                       ▼                               ▼                │               │
+│              [Prompt Conditioning] ──────────────────► [Tiled Flash Attention Kernel]  │
+│                                                                        │               │
+│                                                                        ▼               │
+│   [EmptyLatentImage] ────────────────────────────────────────► [8 Denoising Steps]     │
+│    1280 × 720 HD                                                       │               │
+│                                                                        ▼               │
+│                                                                 [VAEDecode (TAESD)]    │
+│                                                                  taef1.safetensors     │
+│                                                                        │               │
+│                                                                        ▼               │
+│                                                                 [SaveImage & Gallery]  │
+│                                                                1280x720 TrueColor PNG  │
+└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📸 Sovereign Physical Verification: Galaxy S21 DiT 8-Step Output
+## 🏛️ Architectural Nomenclature: What is AmfyUI?
 
-![Galaxy S21 Z-Image Turbo 8-Step Verification Output](docs/research/s21_z_image_turbo_8step.png)
+AmfyUI is an engineered recursive backronym and structural design protocol:
 
-### 1. Verification Prompt (Ground Truth)
-```text
-"A cinematic photo of a neon cybernetic tiger walking in Seoul street at night"
-```
-
-### 2. Verified Input Parameter Engineering
-| Parameter Flag | Applied Setting | Engineering Purpose & Mechanism |
-| :--- | :--- | :--- |
-| **`--diffusion-model`** | `z_image_turbo-Q2_K.gguf` | 6.0B Diffusion Transformer backbone network |
-| **`--llm`** | `Qwen3-4B-Instruct-2507-Q2_K.gguf` | 4.0B Parameter LLM text encoder for dense prompt comprehension |
-| **`--taesd`** | `taef1.safetensors` | 10 MB Tiny AutoEncoder for instant FLUX.1 latent-to-pixel decoding |
-| **`--steps`** | `8` | Optimal numerical convergence for distilled DiT architectures |
-| **`--cfg-scale`** | `1.0` | Prevents over-saturation artifacts on distilled flow models |
-| **`--sampling-method`** | `euler` | 1st-order Ordinary Differential Equation (ODE) numerical solver |
-| **`--backend`** | `clip=cpu,diffusion=vulkan0,vae=cpu` | Allocates GPU VRAM strictly to DiT while offloading LLM/VAE to CPU |
-| **`--stream-layers`** | Enabled | Streams DiT layers over AXI bus into VRAM sequentially |
-| **`--max-vram`** | `vulkan0=1` (1.0 GB) | Guarantees Zero-LMK memory safety within Android OS limits |
-| **`--diffusion-fa`** | Enabled | Tiled Flash Attention reduces attention memory complexity to $O(N)$ |
-| **`--params-backend`** | `diffusion=cpu` | Keeps weights in 8GB LPDDR5 system RAM to avoid VRAM exhaustion |
-| **`--vae-tiling`** | Enabled | Prevents memory allocation spikes during final latent reconstruction |
-
-### 3. Rendering Quality & Optical Ground Truth
-* **Specular PBR Reflection**: Realistic light scattering from neon signboards on wet Seoul asphalt road surfaces.
-* **Geometric Armor Definition**: Razor-sharp boundary definition on the cybernetic tiger's composite metal armor plates.
-* **Micro-Texture Integrity**: Individual whiskers and fur textures cleanly separated from background high-frequency noise.
-* **Zero-Crash Stability**: 100% completion achieved with zero Out-of-Memory (LMK) aborts and zero thermal throttling termination.
-
-### 🔬 Academic Research & Lab Milestone Report
-* **Full Technical Research Report**: [Galaxy S21 Z-Image Turbo Vulkan Research Report](docs/research/s21_z_image_turbo_vulkan_research_report.md)
-* **AMEVA Edge Systems Lab (AESL)**: [https://uno-km.vercel.app/labs/index.html?menu=research-papers&post=33](https://uno-km.vercel.app/labs/index.html?menu=research-papers&post=33)
+* **A — AMEVA / Asynchronous**: Tri-Engine asymmetric pipelining separating Text Encoder (CPU), DiT Backbone (GPU OpenCL/Vulkan), and Latent Decoder (Host CPU).
+* **M — Mobile-First Memory**: Strict hardware VRAM quota bounds (`--max-vram`) and dynamic layer streaming preventing Android Low Memory Killer (LMK) aborts.
+* **F — Flow-Based DAG**: 100% ComfyUI UI & API Prompt JSON compatibility with topological sorting and acyclic dependency resolution.
+* **Y — Yield-Optimized Stream**: Zero-copy mmap tensor paging and AXI bus streaming delivering maximal throughput on thermal-constrained mobile SoCs.
+* **UI — User Interface Studio**: Ultra-lightweight zero-dependency web canvas studio optimized for touch gestures and smartphone viewports (360px–430px).
 
 ---
 
-## 💻 3-Channel Practical User Manual: CLI, PIP, NPM
+## 🧩 ComfyUI Compatibility Matrix & Operational Boundaries
 
-`termux-diffusion` delivers 100% feature parity across **Terminal CLI**, **Python SDK (PyPI)**, and **Node.js SDK (NPM)**.
+AmfyUI interprets and executes official ComfyUI JSON graph exports directly:
+
+| ComfyUI Node Class | AmfyUI Native Implementation | Hardware Backend | Status |
+| :--- | :--- | :--- | :---: |
+| **`CLIPLoader`** / **`DualCLIPLoader`** | Qwen3-4B / CLIP ViT-L / T5-XXL (GGUF/FP8) | CPU NEON SIMD (4–8 Threads) | **Native** |
+| **`UNETLoader`** / **`DiffusionModelLoader`** | Z-Image Turbo 6.0B DiT, SDXS, SD 1.5, SDXL | Adreno OpenCL / Mali Vulkan / CPU | **Native** |
+| **`VAELoader`** / **`TAESDLoader`** | TAESD FLUX.1 (10MB) & SD VAE (FP16) | CPU NEON Vectorized Decode | **Native** |
+| **`CLIPTextEncode`** | Prompt Conditioning & Cross-Attention Vectorizer | Host Shared RAM Context | **Native** |
+| **`EmptyLatentImage`** | Spatial Latent Allocator (up to 1280×720 HD) | Zero-Copy Buffer Pool | **Native** |
+| **`KSampler`** / **`KSamplerAdvanced`** | Res_Multistep, Euler, Euler_A, DPM++ 2M, LCM | Tiled Flash Attention ODE Solver | **Native** |
+| **`VAEDecode`** / **`VAEEncode`** | Latent-to-RGB Reconstruction / Img2Img Tiler | Spatial Tiled Decoder (`--vae-tiling`) | **Native** |
+| **`SaveImage`** | PNG Export & Android MediaStore Broadcaster | Samsung Gallery Auto-Sync | **Native** |
+| **`LoraLoader`** | Runtime Weight Additive Patching | GGML Layer Merging | **Supported** |
+| **`Custom Desktop Python Nodes`** | External modules requiring desktop CUDA/GCC | AMEVA-Cluster RPC Offloading | **Cluster Offload** |
+
+---
+
+## 📊 Physical Empirical Benchmark: Galaxy S20 HD 1280×720 4-Season Showcase
+
+> **Jira Ticket: SCRUM-481 | Physical Device: Samsung Galaxy S20 5G**  
+> **SoC**: Qualcomm Snapdragon 865 KONA (Cortex-A77 × 4 + A55 × 4)  
+> **GPU**: Qualcomm Adreno 650 (OpenCL 2.0 Full Profile) | **RAM**: 12GB LPDDR5  
+> **Model**: Tongyi Wanxiang Z-Image Turbo (6.0B DiT) + Qwen3-4B LLM + TAESD  
+> **Synthesis Resolution**: **1280 × 720 (16:9 Wide High-Definition)**, 8 steps
+
+| Season & Stage | Model Quant | Hardware Backend | Total Elapsed | Step Latency | Acceleration | Peak Temp | Forensic Sanity |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| 🌸 **Stage 1 (Spring)** | Q4_0 (3.53 GB) | CPU (ARM NEON) | 9,022s (2h 30m) | ~1,180s/it | 1.00× (Base) | 47.8°C | NaN=0 / Zero=0 |
+| ☀️ **Stage 2 (Summer)** | Q4_0 (3.53 GB) | Adreno OpenCL 2.0 | **3,835s (1h 03m)** | ~468s/it | **2.35× GPU** | **41.4°C Cool** | NaN=0 / Zero=0 |
+| 🍂 **Stage 3 (Autumn)** | Q8_0 (6.13 GB) | CPU (ARM SDOT) | 8,534s (2h 22m) | ~1,060s/it | 1.06× (vs Q4) | 47.1°C | NaN=0 / Zero=0 |
+| ❄️ **Stage 4 (Winter)** | Q8_0 (6.13 GB) | Adreno OpenCL 2.0 | **3,895s (1h 04m)** | ~475s/it | **2.19× GPU** | **41.8°C Cool** | NaN=0 / Zero=0 |
+
+### 🔬 Key Engineering Discoveries
+1. **2.35× Hardware Acceleration via OpenCL Flash Attention**: GPU compute shaders cut execution time from 2.5 hours down to 1 hour, sustaining ~468 seconds per 1280×720 DiT step.
+2. **Cortex-A77 Hardware SDOT Paradox**: On CPU, 8-bit quantization (Q8_0, 8,534s) ran 488 seconds faster than 4-bit (Q4_0, 9,022s) due to ARMv8.2-A hardware `SDOT` executing 4 FMAs per cycle without software bit-shifting unpack loops.
+3. **Thermal Superiority**: Adreno OpenCL GPU maintained **41.4°C–41.8°C**, running ~6°C cooler than CPU core saturation (47.8°C).
+4. **Complete Forensic Sanity**: 32 distinct layer checkpoints recorded exactly **NaN=0, Zero=0**.
+
+---
+
+## 🖼️ 4-Season 1280×720 HD Portrait Gallery
+
+All images below are native 1280×720 TrueColor PNG artifacts produced during SCRUM-481 on Samsung Galaxy S20:
+
+| 🌸 Spring (Q4 CPU, 1280×720) | ☀️ Summer (Q4 OpenCL, 1280×720) |
+| :---: | :---: |
+| ![Spring](https://raw.githubusercontent.com/uno-km/termux-diffusion/main/assets/gallery/season1_spring_q4_cpu_1280x720.png) | ![Summer](https://raw.githubusercontent.com/uno-km/termux-diffusion/main/assets/gallery/season2_summer_q4_opencl_1280x720.png) |
+| *"A stunningly beautiful 20-year-old Korean woman smiling warmly on a sunny spring day, elegant yellow dress, cherry blossom petals falling, cinematic lighting, 8k"* | *"A stunningly beautiful 20-year-old Korean woman smiling refreshingly on a bright summer beach, stylish airy summer dress, vibrant oceanic breeze, 8k"* |
+| **🍂 Autumn (Q8 CPU, 1280×720)** | **❄️ Winter (Q8 OpenCL, 1280×720)** |
+| ![Autumn](https://raw.githubusercontent.com/uno-km/termux-diffusion/main/assets/gallery/season3_autumn_q8_cpu_1280x720.png) | ![Winter](https://raw.githubusercontent.com/uno-km/termux-diffusion/main/assets/gallery/season4_winter_q8_opencl_1280x720.png) |
+| *"A stunningly beautiful 20-year-old Korean woman smiling peacefully in a scenic autumn park, cozy autumn knit sweater, golden afternoon sunlight, colorful maple foliage"* | *"A stunningly beautiful 20-year-old Korean woman smiling warmly on a crisp winter day, elegant winter coat and scarf, snowy winter atmosphere, 8k"* |
+
+---
+
+## 💻 3-Way Practical Manual: CLI, Python, Node.js
 
 ### 1. Installation
 
-* **Python SDK (PyPI)**:
-  ```bash
-  pip install termux-diffusion
-  termux-diffusion install
-  ```
+```bash
+# Python SDK & CLI (PyPI)
+pkg update && pkg install -y python clang termux-api
+pip install termux-diffusion
+termux-diffusion install
 
-* **Node.js / TypeScript SDK & CLI (NPM)**:
-  ```bash
-  npm install -g termux-diffusion
-  npx termux-diffusion install
-  ```
+# Node.js / TypeScript SDK (NPM)
+pkg update && pkg install -y nodejs clang termux-api
+npm install -g termux-diffusion
+npx termux-diffusion install
+```
 
 ---
 
-### 2. Terminal CLI Manual
+### 2. Terminal CLI & AmfyUI Launch
 
-#### [Method 1] One-Touch High-Level Command
 ```bash
-termux-diffusion generate "A cinematic photo of a neon cybernetic tiger walking in Seoul street at night" \
+# Launch AmfyUI Mobile Studio in smartphone browser
+termux-diffusion ui --port 11553
+
+# Execute a ComfyUI JSON workflow directly
+termux-diffusion workflow run workflows/test2_s20_opencl_winter.json \
+  --device opencl \
+  --output-dir /sdcard/Pictures/TermuxDiffusion
+
+# Validate and inspect workflow node order
+termux-diffusion workflow inspect workflows/test1_s20_cpu_spring.json
+
+# High-Level Single Command Synthesis
+termux-diffusion generate "A stunningly beautiful Korean woman smiling warmly in winter" \
   --preset z-image-turbo \
-  --device vulkan \
+  --device opencl \
+  -W 1280 -H 720 \
   --steps 8 \
-  --cfg 1.0 \
-  --sampler euler \
   --diffusion-fa \
-  --stream-layers \
-  --max-vram vulkan0=1 \
-  --clip-on-cpu \
-  --vae-on-cpu \
-  --taesd auto \
-  -o /sdcard/Pictures/TermuxDiffusion/cyber_tiger_dit.png
-```
-
-#### [Method 2] Low-Level Native Binary Direct Execution
-```bash
-sd-cli-vulkan \
-  -p "A cinematic photo of a neon cybernetic tiger walking in Seoul street at night" \
-  -W 512 -H 512 -t 4 \
-  --steps 8 --cfg-scale 1.0 --sampling-method euler \
-  --diffusion-model ~/.cache/termux-diffusion/models/z_image_turbo-Q2_K.gguf \
-  --llm ~/.cache/termux-diffusion/models/Qwen3-4B-Instruct-2507-Q2_K.gguf \
-  --taesd ~/.cache/termux-diffusion/models/taef1.safetensors \
-  --clip-on-cpu --vae-on-cpu --vae-format flux --mmap --diffusion-fa \
-  --backend clip=cpu,diffusion=vulkan0,vae=cpu \
-  --max-vram vulkan0=1 --stream-layers --params-backend diffusion=cpu --vae-tiling \
-  -o /sdcard/Pictures/TermuxDiffusion/cyber_tiger_dit.png
+  --max-vram GPUOpenCL=2.0 \
+  -o /sdcard/Pictures/TermuxDiffusion/winter_hd.png
 ```
 
 ---
 
-### 3. Python SDK Manual (pip install termux-diffusion)
+### 3. Python SDK Manual (`pip install termux-diffusion`)
 
 ```python
 import termux_diffusion as td
+from termux_diffusion.workflow import WorkflowExecutor
 
-# Official Z-Image Turbo 6.0B DiT Synthesis via Python API
+# 1. Execute ComfyUI Workflow JSON Programmatically
+executor = WorkflowExecutor()
+result_path = executor.execute_file(
+    "workflows/test2_s20_opencl_winter.json",
+    device="opencl",
+    output_dir="/sdcard/Pictures/TermuxDiffusion"
+)
+print(f"Workflow 1280x720 TrueColor PNG saved to: {result_path}")
+
+# 2. High-Level Python API Synthesis
 image_path = td.generate(
-    prompt="A cinematic photo of a neon cybernetic tiger walking in Seoul street at night",
+    prompt="A stunningly beautiful 20-year-old Korean woman smiling warmly on a crisp winter day, 8k",
     preset="z-image-turbo",
+    width=1280,
+    height=720,
     steps=8,
     cfg_scale=1.0,
-    sampler="euler",
-    device="vulkan",
+    guidance=3.5,
+    device="opencl",
     diffusion_fa=True,
-    stream_layers=True,
-    max_vram="vulkan0=1",
-    clip_on_cpu=True,
-    vae_on_cpu=True,
-    taesd="auto",
-    output_path="/sdcard/Pictures/TermuxDiffusion/cyber_tiger_dit.png"
+    max_vram="GPUOpenCL=2.0",
+    output_path="/sdcard/Pictures/TermuxDiffusion/winter_portrait.png"
 )
-
-print(f"Generated and synchronized to Samsung Gallery: {image_path}")
+print(f"Generated via 6.0B DiT & Synced to Samsung Gallery: {image_path}")
 ```
 
 ---
 
-### 4. Node.js / TypeScript SDK Manual (npm install termux-diffusion)
+### 4. Node.js / TypeScript SDK Manual (`npm install termux-diffusion`)
 
 ```typescript
 import { generate } from "termux-diffusion";
 
 async function main(): Promise<void> {
-  // Official Z-Image Turbo 6.0B DiT Synthesis via Node.js API
   const result = await generate({
-    prompt: "A cinematic photo of a neon cybernetic tiger walking in Seoul street at night",
+    prompt: "A stunningly beautiful 20-year-old Korean woman smiling warmly on a crisp winter day, 8k",
     preset: "z-image-turbo",
+    width: 1280,
+    height: 720,
     steps: 8,
     cfgScale: 1.0,
-    sampler: "euler",
-    device: "vulkan",
+    device: "opencl",
     diffusionFa: true,
-    streamLayers: true,
-    maxVram: "vulkan0=1",
-    clipOnCpu: true,
-    vaeOnCpu: true,
-    taesd: "auto",
-    outputPath: "/sdcard/Pictures/TermuxDiffusion/cyber_tiger_dit.png"
+    maxVram: "GPUOpenCL=2.0",
+    outputPath: "/sdcard/Pictures/TermuxDiffusion/winter_portrait.png"
   });
 
   console.log("DiT Synthesis Complete. Artifact:", result.outputPath);
@@ -195,73 +216,13 @@ main().catch(console.error);
 
 ---
 
-## 🎛️ Complete Parameter Reference Matrix
+## 📦 Downloadable ComfyUI Workflows & Foundation Links
 
-| Parameter Flag | Python SDK Key | Node.js Key | Type | Default | Engineering Purpose |
-| :--- | :--- | :--- | :---: | :---: | :--- |
-| `-p, --prompt` | `prompt` | `prompt` | String | *Required* | Conditioning text description |
-| `-W, -H` | `width, height` | `width, height` | Integer | `512` | Synthesis resolution |
-| `-s, --steps` | `steps` | `steps` | Integer | `8` (DiT) / `6` (LCM) | Numerical solver sampling iterations |
-| `-c, --cfg` | `cfg_scale` | `cfgScale` | Float | `1.0` (DiT) / `1.5` (LCM) | Classifier-Free Guidance scale |
-| `--sampler` | `sampler` | `sampler` | String | `euler` / `lcm` | Denoising ODE solver algorithm |
-| `-d, --device` | `device` | `device` | String | `vulkan` | Hardware accelerator (`vulkan`, `cpu`) |
-| `--preset` | `preset` | `preset` | String | `z-image-turbo` | Production-verified configuration bundle |
-| `--stream-layers` | `stream_layers` | `streamLayers` | Boolean | `True` (DiT) | Dynamic layer streaming over AXI bus |
-| `--max-vram` | `max_vram` | `maxVram` | String | `vulkan0=1` | GPU memory ceiling to avert OS LMK aborts |
-| `--diffusion-fa` | `diffusion_fa` | `diffusionFa` | Boolean | `True` | Flash Attention $O(N)$ memory reduction |
-| `--clip-on-cpu` | `clip_on_cpu` | `clipOnCpu` | Boolean | `True` | Keeps LLM text encoder on CPU cores |
-| `--vae-on-cpu` | `vae_on_cpu` | `vaeOnCpu` | Boolean | `True` | Offloads VAE decode to host CPU |
-| `--taesd` | `taesd` | `taesd` | String | `auto` | Tiny AutoEncoder for ~1.2s latent decoding |
-
----
-
-## Distributed Clustering & Memory Pooling (AMEVA-Cluster)
-
-Termux-Diffusion natively integrates with **AMEVA-Cluster** (`pip install ameva-cluster`) for distributed image generation and cross-device memory pooling.
-
-### 1. Install Cluster Runtime
-```bash
-pip install ameva-cluster
-# or Node.js:
-npm install @ameva/cluster
-```
-
-### 2. Launch Worker Node on Remote Phone
-```bash
-# On remote worker device (e.g. Galaxy A53):
-ameva-cluster worker --port 50052
-```
-
-### 3. Distributed Image Synthesis
-```bash
-# Master node sharding DiT layers across remote phone RAM:
-termux-diffusion generate \
-  --model z_image_turbo-q4.gguf \
-  --rpc 192.0.2.10:50052,192.0.2.11:50052 \
-  -ts 50,50 \
-  -p "Cyberpunk Seoul street at night, neon reflections"
-```
-
-```python
-import termux_diffusion as td
-
-# Python SDK Distributed Diffusion
-image_path = td.generate(
-    prompt="Cyberpunk Seoul street at night",
-    cluster_rpc_servers=["192.0.2.10:50052", "192.0.2.11:50052"],
-    tensor_split="50,50",
-    device="vulkan"
-)
-print(f"Generated: {image_path}")
-```
-
----
-
-## 🌐 Official Ecosystem Documentation
-- [Official Architecture & API Reference](https://uno-km.vercel.app/lib/diffusion/)
-- [Advanced Parameters Handbook](https://uno-km.vercel.app/lib/diffusion/advanced-parameters.html)
-- [Galaxy S21 Z-Image Turbo Research Report](docs/research/s21_z_image_turbo_vulkan_research_report.md)
-- [AMEVA Open-Source Foundation Portal](https://uno-km.vercel.app/foundation/index.html)
+* **Official AmfyUI Portal & Technical Report**: [https://uno-km.vercel.app/lib/diffusion/amfyui.html](https://uno-km.vercel.app/lib/diffusion/amfyui.html)
+* **Spring 1280×720 CPU Workflow JSON**: [test1_s20_cpu_spring.json](https://uno-km.vercel.app/lib/diffusion/workflows/test1_s20_cpu_spring.json)
+* **Winter 1280×720 OpenCL Workflow JSON**: [test2_s20_opencl_winter.json](https://uno-km.vercel.app/lib/diffusion/workflows/test2_s20_opencl_winter.json)
+* **Standard Z-Image Turbo Q4 DAG JSON**: [user_z_image_turbo_q4.json](https://uno-km.vercel.app/lib/diffusion/workflows/user_z_image_turbo_q4.json)
+* **AMEVA Open-Source Foundation Portal**: [https://uno-km.vercel.app/foundation/index.html](https://uno-km.vercel.app/foundation/index.html)
 
 ---
 

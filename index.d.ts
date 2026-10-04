@@ -1,6 +1,6 @@
 /**
- * TypeScript Type Definitions for termux-diffusion v1.8.0
- * Pure CPU & Mobile Vulkan GPU On-Device Stable Diffusion / DiT Runtime for Android Termux
+ * TypeScript Type Definitions for termux-diffusion v2.0.0
+ * AmfyUI Mobile Studio & Pure Native On-Device Stable Diffusion / DiT Runtime for Android Termux
  */
 
 import { EventEmitter } from 'events';

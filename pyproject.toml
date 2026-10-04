@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "termux-diffusion"
-version = "1.9.0"
-description = "Pure CPU On-Device Stable Diffusion Runtime for Android Termux (ARM64 Bionic NEON SIMD)"
+version = "2.0.0"
+description = "AmfyUI (ComfyUI Mobile DAG Studio) & Z-Image Turbo (6.0B DiT) On-Device Diffusion Runtime for Android Termux"
 readme = "README.pypi.md"
 requires-python = ">=3.8"
 license = { text = "Apache-2.0" }

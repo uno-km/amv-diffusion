@@ -128,8 +128,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     wf_inspect = wf_sub.add_parser("inspect", help="Inspect and validate ComfyUI workflow nodes and execution order")
     wf_inspect.add_argument("workflow_file", type=str, help="Path to ComfyUI workflow JSON")
 
-    # web command (Mobile Web UI server - amviUI)
-    web_parser = subparsers.add_parser("web", help="Launch amviUI Mobile Web Server (Galaxy S25 Viewport)")
+    # web command (Mobile Web UI server - AmfyUI)
+    web_parser = subparsers.add_parser("web", aliases=["ui", "amfyui"], help="Launch AmfyUI Mobile Studio & ComfyUI-compatible DAG Visualizer")
     web_parser.add_argument("-p", "--port", type=int, nargs="?", const=11553, default=11553, help="Web server port (default: 11553)")
     web_parser.add_argument("-H", "--host", type=str, default="0.0.0.0", help="Host interface to bind (default: 0.0.0.0)")
 
@@ -347,7 +347,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             wf_parser.print_help()
             return 0
 
-    elif args.command == "web":
+    elif args.command in ("web", "ui", "amfyui"):
         from .web import run_web_server
         run_web_server(host=args.host, port=args.port, blocking=True)
         return 0

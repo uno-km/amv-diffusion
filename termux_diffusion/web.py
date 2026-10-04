@@ -1,11 +1,11 @@
-"""amviUI Mobile Studio & Local HTTP Daemon for termux-diffusion.
+"""AmfyUI Mobile Studio & Local HTTP Daemon for termux-diffusion.
 
 Tailored specifically for smartphone viewports (e.g. Samsung Galaxy S25 / S21 / S20, 360px-420px width).
 Zero third-party dependencies: Built strictly with Python standard library (http.server, threading).
 
 Features:
 1. Quick Mode: Single-touch generation with model presets, prompt chips, and precision parameter controls.
-2. amviUI Workflow Engine: ComfyUI UI Graph and API Prompt JSON DAG execution and topological inspection.
+2. AmfyUI Workflow Engine: ComfyUI UI Graph and API Prompt JSON DAG execution and topological inspection.
 3. Real-Time Telemetry: Live progress bar, step counter, speed, ETA, GPU load, and memory gauge.
 4. Direct Android Gallery synchronization and high-resolution image preview.
 """
