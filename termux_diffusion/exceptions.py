@@ -45,6 +45,8 @@ class ErrorCode:
     SOURCE_ARTIFACT = "E_SOURCE_ARTIFACT"
     INSTALL_LOCKED = "E_INSTALL_LOCKED"
     ROLLBACK_FAILED = "E_ROLLBACK_FAILED"
+    CLUSTER_CONNECTION = "E_CLUSTER_CONNECTION"
+    CLUSTER_CONFIG = "E_CLUSTER_CONFIG"
 
 
 class ExitCode:
@@ -108,3 +110,36 @@ class InferenceExecutionError(TermuxDiffusionError):
 
 class ModelCorruptedError(TermuxDiffusionError):
     pass
+
+
+class ClusterConnectionError(TermuxDiffusionError):
+    """Raised when one or more distributed RPC worker nodes cannot be reached or fail handshake."""
+    def __init__(self, message: str):
+        super().__init__(message, code=ErrorCode.CLUSTER_CONNECTION)
+
+
+class ClusterConfigurationError(TermuxDiffusionError):
+    """Raised when cluster parameters (tensor split, backend, vram budget) are invalid."""
+    def __init__(self, message: str):
+        super().__init__(message, code=ErrorCode.CLUSTER_CONFIG)
+
+
+class ClusterLicenseRequiredError(TermuxDiffusionError):
+    """Raised when distributed clustering is invoked without required AMEVA Cluster license."""
+    def __init__(self, message: str = ""):
+        if not message:
+            message = (
+                "\n================================================================================\n"
+                "[AMEVA-CLUSTER] CLUSTER LICENSE REQUIRED (E403)\n"
+                "================================================================================\n"
+                "Multi-device distributed clustering is an exclusive capability of 'ameva-cluster'.\n"
+                "Standalone distributed execution without the official AMEVA-Cluster package is prohibited.\n\n"
+                "Resolution:\n"
+                "  1. Install official AMEVA-Cluster runtime:\n"
+                "     pip install ameva-cluster  (or npm install @ameva/cluster)\n"
+                "  2. Launch worker/master through 'ameva-cluster' control plane:\n"
+                "     ameva-cluster worker\n"
+                "     ameva-cluster master -m model.gguf\n"
+                "================================================================================"
+            )
+        super().__init__(message, code=ErrorCode.CLUSTER_CONFIG)

@@ -310,7 +310,7 @@ async def test_async_generate_cancellation_kills_child_process(tmp_path):
                 export_gallery=False
             )
         )
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.25)
         task.cancel()
         with pytest.raises(asyncio.CancelledError):
             await task

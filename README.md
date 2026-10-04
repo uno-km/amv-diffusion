@@ -215,6 +215,48 @@ main().catch(console.error);
 
 ---
 
+## Distributed Clustering & Memory Pooling (AMEVA-Cluster)
+
+Termux-Diffusion natively integrates with **AMEVA-Cluster** (`pip install ameva-cluster`) for distributed image generation and cross-device memory pooling.
+
+### 1. Install Cluster Runtime
+```bash
+pip install ameva-cluster
+# or Node.js:
+npm install @ameva/cluster
+```
+
+### 2. Launch Worker Node on Remote Phone
+```bash
+# On remote worker device (e.g. Galaxy A53):
+ameva-cluster worker --port 50052
+```
+
+### 3. Distributed Image Synthesis
+```bash
+# Master node sharding DiT layers across remote phone RAM:
+termux-diffusion generate \
+  --model z_image_turbo-q4.gguf \
+  --rpc 192.0.2.10:50052,192.0.2.11:50052 \
+  -ts 50,50 \
+  -p "Cyberpunk Seoul street at night, neon reflections"
+```
+
+```python
+import termux_diffusion as td
+
+# Python SDK Distributed Diffusion
+image_path = td.generate(
+    prompt="Cyberpunk Seoul street at night",
+    cluster_rpc_servers=["192.0.2.10:50052", "192.0.2.11:50052"],
+    tensor_split="50,50",
+    device="vulkan"
+)
+print(f"Generated: {image_path}")
+```
+
+---
+
 ## 🌐 Official Ecosystem Documentation
 - [Official Architecture & API Reference](https://uno-km.vercel.app/lib/diffusion/)
 - [Advanced Parameters Handbook](https://uno-km.vercel.app/lib/diffusion/advanced-parameters.html)

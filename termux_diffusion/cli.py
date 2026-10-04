@@ -84,6 +84,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     gen_parser.add_argument("--stream-layers", action="store_true", default=False, help="Enable layer residency prefetch streaming on top of --max-vram (Tier 3 fallback; disabled in Tier 1/2)")
     gen_parser.add_argument("--params-backend", type=str, default=None, help="Parameter backend assignment (e.g. 'diffusion=cpu' or 'disk')")
     gen_parser.add_argument("--runtime-backend", type=str, default=None, dest="runtime_backend", help="Custom runtime backend assignment (e.g. 'clip=cpu,vae=cpu,diffusion=vulkan0')")
+    gen_parser.add_argument("--rpc", type=str, default=None, help="Distributed RPC server addresses (e.g. '192.168.0.220:50052,192.168.0.253:50052')")
+    gen_parser.add_argument("-ts", "--tensor-split", type=str, default=None, help="Fraction of the model to offload across devices (e.g. '50,50' or '60,40')")
     gen_parser.add_argument("--vae-format", type=str, default=None, help="VAE latent format override (auto, flux, sd3, flux2, wan)")
     gen_parser.add_argument("--no-cache", "--non-cache", "--no-cached", dest="no_cache", action="store_true", default=False, help="Bypass prompt embedding cache and force full real-time text encoder execution")
     gen_parser.add_argument("--progress", "--show-progress", action="store_true", default=False, help="Display real-time interactive terminal progress bar with step/speed/ETA metrics")
@@ -91,6 +93,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     gen_parser.add_argument("--progress-file", type=str, default=None, help="Path to write atomic JSON progress snapshots for external monitoring")
     gen_parser.add_argument("--sampling-method", type=str, dest="sampler", help=argparse.SUPPRESS)
     gen_parser.add_argument("--cfg-scale", type=float, dest="cfg", help=argparse.SUPPRESS)
+    gen_parser.add_argument("--isolate-text-encoder", "--sequential-stages", dest="isolate_text_encoder", action="store_true", default=False, help="Enable 2-stage memory isolation: execute text encoder independently, kill process to recover RAM, then execute DiT inference")
 
     # install command
     inst_parser = subparsers.add_parser("install", help="Provision native Bionic CPU engine (sd-cli-cpu & libomp.so)")
@@ -125,9 +128,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     wf_inspect = wf_sub.add_parser("inspect", help="Inspect and validate ComfyUI workflow nodes and execution order")
     wf_inspect.add_argument("workflow_file", type=str, help="Path to ComfyUI workflow JSON")
 
-    # web command (Mobile Web UI server)
-    web_parser = subparsers.add_parser("web", help="Launch Mobile Web UI server (Galaxy S25 Viewport)")
-    web_parser.add_argument("-p", "--port", type=int, default=8080, help="Web server port (default: 8080)")
+    # web command (Mobile Web UI server - amviUI)
+    web_parser = subparsers.add_parser("web", help="Launch amviUI Mobile Web Server (Galaxy S25 Viewport)")
+    web_parser.add_argument("-p", "--port", type=int, nargs="?", const=11553, default=11553, help="Web server port (default: 11553)")
     web_parser.add_argument("-H", "--host", type=str, default="0.0.0.0", help="Host interface to bind (default: 0.0.0.0)")
 
     # ── AMEVA Component Protocol v1 ─────────────────────────────────────────
@@ -145,7 +148,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         parser.print_help()
         return 0
 
-    args = parser.parse_args(argv)
+    args, unknown_args = parser.parse_known_args(argv)
 
     if args.command == "generate":
         if args.seed < -1 or args.seed > 4294967295:
@@ -234,6 +237,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 stream_layers=args.stream_layers,
                 params_backend=args.params_backend,
                 custom_backend=args.runtime_backend,
+                rpc=args.rpc,
+                tensor_split=args.tensor_split,
                 vae_format=args.vae_format,
                 flow_shift=getattr(args, "flow_shift", None),
                 detail_faces=getattr(args, "detail_faces", False),
@@ -245,6 +250,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 progress=getattr(args, "progress", False),
                 json_progress=getattr(args, "json_progress", False),
                 progress_file=getattr(args, "progress_file", None),
+                extra_args=unknown_args if unknown_args else None,
+                isolate_text_encoder=getattr(args, "isolate_text_encoder", False),
                 auto_provision=True
             )
             return 0 if res.path.exists() else 1

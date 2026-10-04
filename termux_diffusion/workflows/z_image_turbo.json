@@ -1,0 +1,89 @@
+{
+  "name": "Z-Image Turbo 6B (Next-Gen DiT)",
+  "description": "차세대 6B 파라미터 Diffusion Transformer 플로우 매칭 실사 고화질 배전반",
+  "author": "Tongyi / amviUI",
+  "version": 1.0,
+  "last_node_id": 7,
+  "last_link_id": 8,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CheckpointLoaderSimple",
+      "title": "Load Z-Image Turbo & Qwen3-4B",
+      "inputs": [],
+      "outputs": [
+        {"name": "MODEL", "type": "MODEL", "links": [1], "slot_index": 0},
+        {"name": "CLIP", "type": "CLIP", "links": [2, 3], "slot_index": 1},
+        {"name": "VAE", "type": "VAE", "links": [7], "slot_index": 2}
+      ],
+      "widgets_values": ["z_image_turbo-Q2_K.gguf"]
+    },
+    {
+      "id": 2,
+      "type": "EmptyLatentImage",
+      "title": "Empty Latent Canvas",
+      "inputs": [],
+      "outputs": [{"name": "LATENT", "type": "LATENT", "links": [4], "slot_index": 0}],
+      "widgets_values": [512, 512, 1]
+    },
+    {
+      "id": 3,
+      "type": "CLIPTextEncode",
+      "title": "Positive Prompt (Qwen3-4B LLM)",
+      "inputs": [{"name": "clip", "type": "CLIP", "link": 2}],
+      "outputs": [{"name": "CONDITIONING", "type": "CONDITIONING", "links": [5], "slot_index": 0}],
+      "widgets_values": ["A professional studio portrait of a modern Korean woman in traditional Hanbok fusion clothing, intricate silk textures, shallow depth of field, 8k resolution, award-winning photography"]
+    },
+    {
+      "id": 4,
+      "type": "CLIPTextEncode",
+      "title": "Negative Conditioning",
+      "inputs": [{"name": "clip", "type": "CLIP", "link": 3}],
+      "outputs": [{"name": "CONDITIONING", "type": "CONDITIONING", "links": [6], "slot_index": 0}],
+      "widgets_values": ["blurry, low quality, noise, artifact, distorted face, bad anatomy"]
+    },
+    {
+      "id": 5,
+      "type": "KSampler",
+      "title": "Flow-Matching Sampler (8-Step Euler)",
+      "inputs": [
+        {"name": "model", "type": "MODEL", "link": 1},
+        {"name": "positive", "type": "CONDITIONING", "link": 5},
+        {"name": "negative", "type": "CONDITIONING", "link": 6},
+        {"name": "latent_image", "type": "LATENT", "link": 4}
+      ],
+      "outputs": [{"name": "LATENT", "type": "LATENT", "links": [8], "slot_index": 0}],
+      "widgets_values": [42, "randomize", 8, 1.0, "euler", "flux", 1.0]
+    },
+    {
+      "id": 6,
+      "type": "VAEDecode",
+      "title": "TAEF1 / Flux VAE Decoder",
+      "inputs": [
+        {"name": "samples", "type": "LATENT", "link": 8},
+        {"name": "vae", "type": "VAE", "link": 7}
+      ],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "links": [9], "slot_index": 0}],
+      "widgets_values": []
+    },
+    {
+      "id": 7,
+      "type": "SaveImage",
+      "title": "Save / Export Image",
+      "inputs": [{"name": "images", "type": "IMAGE", "link": 9}],
+      "outputs": [],
+      "widgets_values": ["z_image_turbo_out"]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 5, 0, "MODEL"],
+    [2, 1, 1, 3, 0, "CLIP"],
+    [3, 1, 1, 4, 0, "CLIP"],
+    [4, 2, 0, 5, 3, "LATENT"],
+    [5, 3, 0, 5, 1, "CONDITIONING"],
+    [6, 4, 0, 5, 2, "CONDITIONING"],
+    [7, 1, 2, 6, 1, "VAE"],
+    [8, 5, 0, 6, 0, "LATENT"],
+    [9, 6, 0, 7, 0, "IMAGE"]
+  ]
+}

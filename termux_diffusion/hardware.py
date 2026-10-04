@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -765,6 +766,120 @@ def get_kernel_physical_memory_gb() -> Tuple[float, float]:
             mem_avail_bytes = 2 * (1024 ** 3)
 
     return round(mem_total_bytes / (1024 ** 3), 2), round(mem_avail_bytes / (1024 ** 3), 2)
+
+
+_LAST_CPU_SAMPLE: Optional[Tuple[float, float, float]] = None
+
+
+def get_live_cpu_percent() -> float:
+    """Retrieve instantaneous CPU utilization percentage (0-100%) from Linux /proc/stat."""
+    global _LAST_CPU_SAMPLE
+    now = time.time()
+    stat_path = Path("/proc/stat")
+
+    try:
+        if stat_path.exists():
+            with open(stat_path, "r", encoding="utf-8") as f:
+                first_line = f.readline()
+                if first_line.startswith("cpu "):
+                    parts = [float(x) for x in first_line.split()[1:8]]
+                    idle = parts[3] + (parts[4] if len(parts) > 4 else 0.0)
+                    total = sum(parts)
+                    work = total - idle
+
+                    if _LAST_CPU_SAMPLE is not None:
+                        last_work, last_total, last_time = _LAST_CPU_SAMPLE
+                        delta_total = total - last_total
+                        delta_work = work - last_work
+                        _LAST_CPU_SAMPLE = (work, total, now)
+                        if delta_total > 0 and (now - last_time) >= 0.1:
+                            pct = (delta_work / delta_total) * 100.0
+                            return round(min(100.0, max(0.0, pct)), 1)
+                    _LAST_CPU_SAMPLE = (work, total, now)
+    except (OSError, PermissionError):
+        pass
+
+    try:
+        load1, _, _ = os.getloadavg()
+        cpu_cnt = os.cpu_count() or 8
+        pct = (load1 / cpu_cnt) * 100.0
+        return round(min(100.0, max(0.0, pct)), 1)
+    except (OSError, AttributeError):
+        pass
+
+    try:
+        import psutil
+        return round(float(psutil.cpu_percent(interval=None)), 1)
+    except Exception:
+        return 0.0
+
+
+def get_live_gpu_percent() -> Optional[int]:
+    """Query Linux/Android kernel sysfs GPU load percentage across Adreno and Mali chips."""
+    kgsl_paths = [
+        Path("/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage"),
+        Path("/sys/class/kgsl/kgsl-3d0/gpubusy"),
+    ]
+    for p in kgsl_paths:
+        try:
+            if p.is_file():
+                content = p.read_text().strip()
+                if " " in content:
+                    parts = content.split()
+                    busy_val, total_val = int(parts[0]), int(parts[1])
+                    if total_val > 0:
+                        return int(round((busy_val / total_val) * 100))
+                else:
+                    return int(content.replace("%", ""))
+        except (OSError, PermissionError):
+            pass
+
+    mali_paths = [
+        Path("/sys/class/misc/mali0/device/utilization"),
+        Path("/sys/devices/platform/17000000.gpu/utilization"),
+        Path("/sys/kernel/gpu/gpu_busy"),
+    ]
+    for p in mali_paths:
+        try:
+            if p.is_file():
+                content = p.read_text().strip().replace("%", "")
+                return int(content)
+        except (OSError, PermissionError):
+            pass
+
+    return None
+
+
+def get_system_resource_metrics() -> Dict[str, Any]:
+    """Deterministic system health probe returning RAM, CPU, GPU, and process memory."""
+    mem_total_gb, mem_avail_gb = get_kernel_physical_memory_gb()
+    mem_used_gb = round(max(0.0, mem_total_gb - mem_avail_gb), 2)
+    mem_pct = round((mem_used_gb / mem_total_gb) * 100.0, 1) if mem_total_gb > 0 else 0.0
+
+    cpu_pct = get_live_cpu_percent()
+    gpu_busy = get_live_gpu_percent()
+
+    rss_mb = 0.0
+    try:
+        with open(f"/proc/{os.getpid()}/status", "r", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        rss_mb = round(int(parts[1]) / 1024.0, 1)
+                    break
+    except Exception:
+        pass
+
+    return {
+        "ram_total_gb": mem_total_gb,
+        "ram_avail_gb": mem_avail_gb,
+        "ram_used_gb": mem_used_gb,
+        "ram_percent": mem_pct,
+        "cpu_percent": cpu_pct,
+        "gpu_percent": gpu_busy,
+        "process_rss_mb": rss_mb,
+    }
 
 
 class TermuxExecutionGuard:

@@ -10,7 +10,7 @@ import sys
 import shutil
 import logging
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 
 from .platform import (
     TERMUX_PREFIX,
@@ -59,6 +59,28 @@ def get_binary_path(backend: str = "auto") -> Optional[Path]:
     req_backend = str(backend or "auto").strip().lower()
 
     # --------------------------------------------------------------------------
+    # 0. RPC / Distributed Multi-Node Route (sd-cli-rpc, sd-cli)
+    # --------------------------------------------------------------------------
+    if req_backend in ("rpc", "remote"):
+        rpc_candidates = [
+            ameva_diff_dir / "sd-cli-rpc",
+            home / ".local" / "share" / "ameva" / "rpc_llama" / "bin" / "sd-cli",
+            home / ".local" / "share" / "ameva" / "rpc_llama" / "bin" / "sd-cli-rpc",
+            bin_dir / "sd-cli-rpc",
+            prefix_bin / "sd-cli-rpc",
+            home / ".local" / "bin" / "sd-cli-rpc",
+            bin_dir / "sd-cli",
+            prefix_bin / "sd-cli",
+        ]
+        for p in rpc_candidates:
+            if p.is_file() and (os.access(p, os.X_OK) or os.name == "nt"):
+                return p.resolve()
+
+        which_rpc = shutil.which("sd-cli-rpc")
+        if which_rpc and (os.access(which_rpc, os.X_OK) or os.name == "nt"):
+            return Path(which_rpc).resolve()
+
+    # --------------------------------------------------------------------------
     # 1. GPU / Vulkan Route: Pure Vulkan GPU Binary (sd-cli-vulkan)
     # --------------------------------------------------------------------------
     if req_backend in ("vulkan", "gpu"):
@@ -84,9 +106,25 @@ def get_binary_path(backend: str = "auto") -> Optional[Path]:
         return None
 
     # --------------------------------------------------------------------------
+    # 1.1 OpenCL Route: OpenCL GPU Binary (sd-cli with OpenCL)
+    # --------------------------------------------------------------------------
+    if req_backend in ("opencl", "cl"):
+        opencl_candidates = [
+            home / "sd-opencl-build" / "build" / "bin" / "sd-cli",
+            bin_dir / "sd-cli-opencl",
+            prefix_bin / "sd-cli-opencl",
+            prefix_bin / "sd-cli",
+        ]
+        for p in opencl_candidates:
+            if p.is_file() and (os.access(p, os.X_OK) or os.name == "nt"):
+                return p.resolve()
+        return None
+
+    # --------------------------------------------------------------------------
     # 2. CPU Baseline Route: Pure CPU NEON Binary (sd-cli-cpu, sd-cli)
     # --------------------------------------------------------------------------
     cpu_candidates = [
+        home / ".local" / "share" / "ameva" / "rpc_llama" / "bin" / "sd-cli",
         bin_dir / "sd-cli-cpu",
         prefix_bin / "sd-cli-cpu",
         bin_dir / "sd-cli-source-cpu",
@@ -123,11 +161,23 @@ class DiffusionEngine:
         model: str = "realistic",
         backend: str = "auto",
         device: Optional[str] = None,
+        rpc: Optional[str] = None,
+        tensor_split: Optional[str] = None,
+        cluster_rpc_servers: Optional[Union[str, List[str]]] = None,
+        cluster_split_mode: Optional[str] = None,
+        cluster_tensor_split: Optional[str] = None,
+        cluster_vram_budget: Optional[str] = None,
         **kwargs: Any,
     ):
         self.model = model
         self.device = device or backend or "auto"
         self.requested_backend = self.device.strip().lower()
+        self.cluster_rpc_servers = cluster_rpc_servers or rpc
+        self.rpc = self.cluster_rpc_servers if isinstance(self.cluster_rpc_servers, str) else (",".join(self.cluster_rpc_servers) if self.cluster_rpc_servers else None)
+        self.cluster_tensor_split = cluster_tensor_split or tensor_split
+        self.tensor_split = self.cluster_tensor_split
+        self.cluster_split_mode = cluster_split_mode
+        self.cluster_vram_budget = cluster_vram_budget
         self.bin_dir = get_engine_bin_dir()
         self.lib_dir = get_engine_lib_dir()
         self.kwargs = kwargs
@@ -143,6 +193,18 @@ class DiffusionEngine:
         merged = {**self.kwargs, **kwargs}
         merged.setdefault("device", self.requested_backend)
         merged.setdefault("model", self.model)
+        if self.rpc and "rpc" not in merged:
+            merged["rpc"] = self.rpc
+        if self.cluster_rpc_servers and "cluster_rpc_servers" not in merged:
+            merged["cluster_rpc_servers"] = self.cluster_rpc_servers
+        if self.tensor_split and "tensor_split" not in merged:
+            merged["tensor_split"] = self.tensor_split
+        if self.cluster_split_mode and "cluster_split_mode" not in merged:
+            merged["cluster_split_mode"] = self.cluster_split_mode
+        if self.cluster_tensor_split and "cluster_tensor_split" not in merged:
+            merged["cluster_tensor_split"] = self.cluster_tensor_split
+        if self.cluster_vram_budget and "cluster_vram_budget" not in merged and "max_vram" not in merged:
+            merged["cluster_vram_budget"] = self.cluster_vram_budget
         return generate(prompt=prompt, **merged)
 
     @staticmethod

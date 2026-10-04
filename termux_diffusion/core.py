@@ -13,7 +13,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Generator, Optional, Tuple, Union
+from typing import Callable, Generator, Optional, Tuple, Union, List, Dict, Any
 
 from .exceptions import InferenceTimeoutError, OOMRiskError, ProvisioningError, TermuxDiffusionError
 from .hub import DEFAULT_PRESETS, list_presets, resolve_model_path
@@ -34,6 +34,17 @@ def get_default_cache_dir() -> Path:
 from .hardware import (
     TermuxExecutionGuard,
     get_kernel_physical_memory_gb,
+)
+from .cluster import (
+    parse_cluster_rpc_spec,
+    verify_rpc_cluster_nodes,
+    verify_rpc_cluster_health,
+    ClusterOptionForwarder,
+    SequentialClusterPipeline,
+)
+from .exceptions import (
+    ClusterConnectionError,
+    ClusterConfigurationError,
 )
 
 logger = logging.getLogger("termux_diffusion.core")
@@ -143,6 +154,14 @@ class GenerationResult:
     control_image: Optional[Path] = None
     control_strength: Optional[float] = None
     taesd: Optional[Path] = None
+    rpc: Optional[str] = None
+    tensor_split: Optional[str] = None
+    cluster_rpc_servers: Optional[List[str]] = None
+    cluster_split_mode: Optional[str] = None
+    cluster_tensor_split: Optional[str] = None
+    cluster_vram_budget: Optional[str] = None
+    extra_args: Optional[List[str]] = None
+    isolated_stages: bool = False
 
     def __str__(self) -> str:
         return f"<GenerationResult path='{self.path}' device='{self.device}' elapsed={self.elapsed_sec:.1f}s>"
@@ -370,6 +389,12 @@ def generate(
     custom_backend: Optional[str] = None,
     vae_format: Optional[str] = None,
     flow_shift: Optional[float] = None,
+    rpc: Optional[str] = None,
+    tensor_split: Optional[str] = None,
+    cluster_rpc_servers: Optional[Union[str, List[str]]] = None,
+    cluster_split_mode: Optional[str] = None,
+    cluster_tensor_split: Optional[str] = None,
+    cluster_vram_budget: Optional[str] = None,
     detail_faces: bool = False,
     detailer_strength: float = 0.35,
     detailer_steps: int = 2,
@@ -385,8 +410,12 @@ def generate(
     progress_file: Optional[Union[str, Path]] = None,
     progress_callback: Optional[Callable[[ProgressInfo], None]] = None,
     timeout: int = 1800,
+    extra_args: Optional[List[str]] = None,
+    isolate_text_encoder: bool = False,
+    sequential_stages: bool = False,
     _cancel_event: Optional[threading.Event] = None,
     _proc_holder: Optional[list] = None,
+    **extra_kwargs: Any,
 ) -> GenerationResult:
     """Generate an AI image on Samsung Galaxy / Android Termux using Bionic native C++ diffusion.
     
@@ -413,6 +442,8 @@ def generate(
         control_image: Path to ControlNet hint/guide image (e.g. pose, edges).
         control_strength: ControlNet influence strength (0.0 to 2.0, default: 0.9).
         taesd: Path to Tiny AutoEncoder (TAESD) model for ultra-fast VAE decoding.
+        rpc: Distributed RPC server addresses for remote worker offloading (e.g. '192.168.0.220:50052').
+        tensor_split: Weight offload fraction across distributed nodes (e.g. '50,50' or '60,40').
         export_gallery: Whether to copy image to Samsung Gallery and broadcast media scanner intent.
         wake_lock: Whether to acquire Android CPU WakeLock during generation.
         low_ram_guard: Whether to verify available memory before starting inference.
@@ -475,11 +506,19 @@ def generate(
             )
 
     # 3. Model Weight Resolution and Local Caching
+    if isinstance(model, dict):
+        if "shift" in model and flow_shift is None:
+            flow_shift = model["shift"]
+        model = model.get("model", "realistic")
+
     model_str = str(model).lower().strip()
     is_z_image = "z-image" in model_str or "z_image" in model_str or "turbo-6b" in model_str or (diffusion_model and "z_image" in str(diffusion_model).lower())
     if is_z_image:
         if diffusion_model is None:
-            diffusion_model = "z_image_turbo-Q2_K.gguf"
+            if model_str.endswith(".gguf") or model_str.endswith(".safetensors") or "/" in model_str:
+                diffusion_model = model
+            else:
+                diffusion_model = "z_image_turbo-Q2_K.gguf"
         if llm is None:
             llm = "Qwen3-4B-Instruct-2507-Q2_K.gguf"
         if vae is None and taesd is None:
@@ -528,7 +567,7 @@ def generate(
 
     # 4. Resolve CPU Thread Allocation and Sampling Steps
     presets = list_presets()
-    preset_info = presets.get(model, {})
+    preset_info = presets.get(str(model), {})
     if steps is None:
         steps = preset_info.get("default_steps", 10)
     if cfg_scale is None:
@@ -673,15 +712,37 @@ def generate(
         b_clip = "cpu" if clip_on_cpu else "vulkan0"
         b_vae = "cpu" if vae_on_cpu else "vulkan0"
         cmd.extend(["--backend", f"clip={b_clip},diffusion=vulkan0,vae={b_vae}"])
+    elif effective_device in ("opencl", "cl"):
+        b_clip = "cpu" if clip_on_cpu else "cpu"
+        b_vae = "cpu" if vae_on_cpu else "cpu"
+        cmd.extend(["--backend", f"clip={b_clip},diffusion=GPUOpenCL,vae={b_vae}"])
+        if params_backend is None:
+            cmd.extend(["--params-backend", "clip=disk,diffusion=cpu"])
+        if max_vram is None:
+            cmd.extend(["--max-vram", "GPUOpenCL=1.0"])
+        cmd.append("--disable-prefetch")
 
-    if max_vram is not None and str(max_vram).strip() not in ("", "0", "none", "disable", "unlimited", "vulkan0=0"):
-        cmd.extend(["--max-vram", str(max_vram).strip()])
+    # --- Unified Distributed RPC Cluster Configuration ---
+    effective_rpc = cluster_rpc_servers if cluster_rpc_servers is not None else rpc
+    cluster_nodes: List[str] = []
+    if effective_rpc is not None and str(effective_rpc).strip():
+        cluster_nodes = parse_cluster_rpc_spec(effective_rpc)
+        if cluster_nodes:
+            # Pre-flight check: verify TCP connectivity. Raises ClusterConnectionError if unreachable.
+            verify_rpc_cluster_nodes(cluster_nodes, timeout=3.0)
+            cmd.extend(["--rpc-servers", ",".join(cluster_nodes)])
 
-    if stream_layers:
-        cmd.append("--stream-layers")
+    effective_split_mode = cluster_split_mode if cluster_split_mode is not None else (cluster_tensor_split or tensor_split)
+    if effective_split_mode is not None and str(effective_split_mode).strip():
+        sm_val = str(effective_split_mode).strip().lower()
+        if sm_val in ("layer", "row"):
+            cmd.extend(["--split-mode", sm_val])
+        else:
+            logger.info("tensor_split='%s' specified; sd-cli balances across --rpc-servers directly.", effective_split_mode)
 
-    if params_backend is not None and str(params_backend).strip():
-        cmd.extend(["--params-backend", str(params_backend).strip()])
+    effective_max_vram = cluster_vram_budget or max_vram
+    if effective_max_vram is not None and str(effective_max_vram).strip() not in ("", "0", "none", "disable", "unlimited", "vulkan0=0"):
+        cmd.extend(["--max-vram", str(effective_max_vram).strip()])
 
     # --- Advanced TOP 7 Parameters Integration & Defense ---
     effective_sampler = None
@@ -810,6 +871,15 @@ def generate(
             effective_cstrength = 0.9
         cmd.extend(["--control-strength", str(effective_cstrength)])
 
+    # 5.0.1 Transparent Sub-Engine Option Forwarding & Extra Argument Merging
+    all_forwarded: List[str] = []
+    if extra_args:
+        all_forwarded.extend([str(a) for a in extra_args if str(a).strip()])
+    if extra_kwargs:
+        all_forwarded.extend(ClusterOptionForwarder.normalize_forward_args(extra_kwargs))
+    if all_forwarded:
+        cmd = ClusterOptionForwarder.merge_pass_through_args(cmd, all_forwarded)
+        logger.info("[termux-diffusion] Merged %d pass-through / forwarded CLI options into engine argv.", len(all_forwarded))
 
     # 5.1 Configure Environment with companion library search paths (Termux native isolation)
     from .platform import get_clean_execution_env
@@ -868,7 +938,31 @@ def generate(
                 ) from e
             avr_ctx = None
 
+    # Inject AMEVA isolated RPC companion library paths if available
+    home_dir = Path(os.environ.get("HOME", os.path.expanduser("~")))
+    rpc_lib_dir = home_dir / ".local" / "share" / "ameva" / "rpc_llama" / "bin"
+    if rpc_lib_dir.is_dir():
+        cur_ld = env.get("LD_LIBRARY_PATH", "")
+        if str(rpc_lib_dir) not in cur_ld:
+            env["LD_LIBRARY_PATH"] = f"{rpc_lib_dir}:{cur_ld}" if cur_ld else str(rpc_lib_dir)
+
+    # Ensure Termux system lib is present for CPU baseline runs (unless in Vulkan or OpenCL route where it causes symbol shadowing)
+    if effective_device not in ("vulkan", "gpu", "opencl", "cl"):
+        termux_usr_lib = Path("/data/data/com.termux/files/usr/lib")
+        if termux_usr_lib.is_dir():
+            cur_ld = env.get("LD_LIBRARY_PATH", "")
+            if str(termux_usr_lib) not in cur_ld:
+                env["LD_LIBRARY_PATH"] = f"{cur_ld}:{termux_usr_lib}" if cur_ld else str(termux_usr_lib)
+
+    # Inject OpenCL build companion directory if present
+    opencl_bin_dir = home_dir / "sd-opencl-build" / "build" / "bin"
+    if opencl_bin_dir.is_dir() and effective_device in ("opencl", "cl"):
+        cur_ld = env.get("LD_LIBRARY_PATH", "")
+        parts = [p for p in cur_ld.split(":") if p and not p.startswith("/data/data/com.termux/files/usr/lib")]
+        env["LD_LIBRARY_PATH"] = ":".join([str(opencl_bin_dir)] + [p for p in parts if p != str(opencl_bin_dir)])
+
     logger.info("Executing diffusion inference: %s", " ".join(cmd[:6]) + " ...")
+    print(f"[termux-diffusion] Command: {' '.join(cmd)}")
     print(f"[termux-diffusion] Processing inference with model='{model}' (steps={steps}, threads={threads}, device={device_mode})...")
 
     start_time = time.time()
@@ -1196,6 +1290,14 @@ def generate(
         control_image=effective_cimg_path,
         control_strength=effective_cstrength,
         taesd=effective_taesd_path,
+        rpc=effective_rpc if isinstance(effective_rpc, str) else (",".join(cluster_nodes) if cluster_nodes else None),
+        tensor_split=tensor_split,
+        cluster_rpc_servers=cluster_nodes if cluster_nodes else (parse_cluster_rpc_spec(effective_rpc) if effective_rpc else None),
+        cluster_split_mode=effective_split_mode,
+        cluster_tensor_split=cluster_tensor_split or tensor_split,
+        cluster_vram_budget=effective_max_vram,
+        extra_args=all_forwarded if all_forwarded else None,
+        isolated_stages=isolate_text_encoder or sequential_stages,
     )
 
 

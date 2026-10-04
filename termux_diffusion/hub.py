@@ -14,7 +14,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from types import MappingProxyType
-from typing import Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from .exceptions import ModelDownloadError, ModelNotFoundError
 from .platform import get_default_cache_dir
@@ -611,3 +611,74 @@ def clear_cache(cache_dir: Optional[Union[str, Path]] = None, model_name: Option
 
     logger.info("Cleared %d cached model file(s) from %s", removed, target_dir)
     return removed
+
+
+def get_device_model_catalog(cache_dir: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
+    """Scan and categorize all installed model weights (GGUF, Safetensors, CKPT, ONNX) on device."""
+    target_dir = Path(cache_dir).resolve() if cache_dir else get_cache_dir()
+
+    search_dirs = [target_dir]
+    alt_dir = Path.home() / ".cache" / "termux-diffusion" / "models"
+    if alt_dir.is_dir() and alt_dir.resolve() != target_dir:
+        search_dirs.append(alt_dir)
+
+    exts = {".gguf", ".safetensors", ".ckpt", ".bin", ".pt", ".onnx"}
+    found_files: Dict[str, Dict[str, Any]] = {}
+
+    for s_dir in search_dirs:
+        if not s_dir.is_dir():
+            continue
+        try:
+            for item in s_dir.rglob("*"):
+                if item.is_file() and item.suffix.lower() in exts:
+                    if item.name not in found_files:
+                        try:
+                            size_mb = item.stat().st_size / (1024 * 1024)
+                        except OSError:
+                            size_mb = 0.0
+                        found_files[item.name] = {
+                            "name": item.name,
+                            "path": str(item.resolve()),
+                            "size_mb": round(size_mb, 1),
+                            "ext": item.suffix.lower(),
+                        }
+        except Exception as e:
+            logger.warning("Error scanning model dir %s: %s", s_dir, e)
+
+    checkpoints: List[Dict[str, Any]] = []
+    vae_models: List[Dict[str, Any]] = []
+    loras: List[Dict[str, Any]] = []
+    text_encoders: List[Dict[str, Any]] = []
+
+    for name, info in found_files.items():
+        n_low = name.lower()
+        rel_path = str(info["path"]).lower()
+        if "vae" in n_low or "ae" in n_low or "taef" in n_low or "taesd" in n_low or "/vae/" in rel_path:
+            info["category"] = "vae"
+            vae_models.append(info)
+        elif "lora" in n_low or "/lora" in rel_path:
+            info["category"] = "lora"
+            loras.append(info)
+        elif "clip" in n_low or "qwen" in n_low or "smolvlm" in n_low or "encoder" in n_low or "/clip/" in rel_path:
+            info["category"] = "text_encoder"
+            text_encoders.append(info)
+        else:
+            info["category"] = "checkpoint"
+            checkpoints.append(info)
+
+    checkpoints.sort(key=lambda x: x["name"].lower())
+    vae_models.sort(key=lambda x: x["name"].lower())
+    loras.sort(key=lambda x: x["name"].lower())
+    text_encoders.sort(key=lambda x: x["name"].lower())
+
+    all_list = sorted(list(found_files.values()), key=lambda x: x["name"].lower())
+
+    return {
+        "checkpoints": checkpoints,
+        "vae": vae_models,
+        "loras": loras,
+        "text_encoders": text_encoders,
+        "all": all_list,
+        "total": len(all_list),
+    }
+

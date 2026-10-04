@@ -46,6 +46,7 @@ def get_clean_execution_env(
 
     req_backend = str(backend or "cpu").strip().lower()
     is_vulkan_route = req_backend in ("vulkan", "gpu")
+    is_opencl_route = req_backend in ("opencl", "cl")
 
     forbidden_prefixes = ("/system/", "/vendor/", "/apex/", "/system_ext/", "/odm/", "/product/")
     cur_ld = env.get("LD_LIBRARY_PATH", "")
@@ -58,6 +59,13 @@ def get_clean_execution_env(
             str(Path.home() / ".cache" / "termux-diffusion" / "lib"),
         ]
         # Filter out prefix/lib from existing parts for Vulkan
+        existing_parts = [p for p in existing_parts if not p.startswith(str(Path(prefix) / "lib"))]
+    elif is_opencl_route:
+        # Strictly prioritize OpenCL standalone bin directory and exclude /usr/lib (stub libOpenCL.so)
+        lib_candidates = [
+            str(Path.home() / "sd-opencl-build" / "build" / "bin"),
+            str(Path.home() / ".cache" / "termux-diffusion" / "lib"),
+        ]
         existing_parts = [p for p in existing_parts if not p.startswith(str(Path(prefix) / "lib"))]
     else:
         lib_candidates = [
@@ -77,20 +85,29 @@ def get_clean_execution_env(
     elif is_vulkan_route and "LD_LIBRARY_PATH" in env:
         env.pop("LD_LIBRARY_PATH", None)
 
-    # Detect libegl_shim.so for Android Mali/Samsung GOS Vulkan HAL compatibility
-    shim_candidates = [
-        Path(prefix) / "lib" / "libegl_shim.so",
-        Path.home() / ".cache" / "termux-diffusion" / "lib" / "libegl_shim.so",
-        Path.home() / ".local" / "lib" / "libegl_shim.so",
-        Path("/data/data/com.termux/files/usr/lib/libegl_shim.so"),
-    ]
-    cur_preload = env.get("LD_PRELOAD", "")
-    for shim in shim_candidates:
-        if shim.is_file():
-            shim_str = str(shim.resolve())
-            if shim_str not in cur_preload:
-                env["LD_PRELOAD"] = f"{shim_str}:{cur_preload}" if cur_preload else shim_str
-            break
+    # Detect libegl_shim.so for Android Mali/Samsung GOS Vulkan HAL compatibility (Vulkan only)
+    if is_vulkan_route:
+        shim_candidates = [
+            Path(prefix) / "lib" / "libegl_shim.so",
+            Path.home() / ".cache" / "termux-diffusion" / "lib" / "libegl_shim.so",
+            Path.home() / ".local" / "lib" / "libegl_shim.so",
+            Path("/data/data/com.termux/files/usr/lib/libegl_shim.so"),
+        ]
+        cur_preload = env.get("LD_PRELOAD", "")
+        for shim in shim_candidates:
+            if shim.is_file():
+                shim_str = str(shim.resolve())
+                if shim_str not in cur_preload:
+                    env["LD_PRELOAD"] = f"{shim_str}:{cur_preload}" if cur_preload else shim_str
+                break
+    elif is_opencl_route:
+        # Strip Mali Vulkan shim from LD_PRELOAD on OpenCL to prevent Adreno linker faults
+        cur_preload = env.get("LD_PRELOAD", "")
+        clean_preloads = [p for p in cur_preload.split(":") if p and "libegl_shim.so" not in p]
+        if clean_preloads:
+            env["LD_PRELOAD"] = ":".join(clean_preloads)
+        else:
+            env.pop("LD_PRELOAD", None)
 
     return env
 
@@ -135,16 +152,45 @@ def get_default_cache_dir() -> Path:
 def get_galaxy_gallery_dir() -> Path:
     """Return the designated Samsung Galaxy / Android photo gallery save directory.
     
-    Gracefully degrades to app-private cache (~/.cache/termux-diffusion/outputs)
-    if Android external storage permission (~/storage) has not been granted.
+    Default hierarchy:
+    1. Custom environment variable (TERMUX_DIFFUSION_OUTPUT_DIR or AMEVA_OUTPUT_DIR)
+    2. Primary Android internal storage DCIM album (~/storage/dcim/TermuxDiffusion or /sdcard/DCIM/TermuxDiffusion)
+    3. Secondary Android Pictures album (~/storage/pictures/TermuxDiffusion or /sdcard/Pictures/TermuxDiffusion)
+    4. Fallback to app-private cache (~/.cache/termux-diffusion/outputs)
     """
+    custom_dir = os.environ.get("TERMUX_DIFFUSION_OUTPUT_DIR") or os.environ.get("AMEVA_OUTPUT_DIR")
+    if custom_dir:
+        p = Path(custom_dir).expanduser().resolve()
+        try:
+            p.mkdir(parents=True, exist_ok=True)
+            return p
+        except Exception as _e:
+            logger.debug("[platform] custom output dir failed: %s", _e)
+
+    # 1. Primary: Samsung Galaxy Internal Storage DCIM/TermuxDiffusion
+    termux_dcim = Path.home() / "storage" / "dcim" / "TermuxDiffusion"
+    if (Path.home() / "storage" / "dcim").is_dir():
+        try:
+            termux_dcim.mkdir(parents=True, exist_ok=True)
+            return termux_dcim
+        except (PermissionError, OSError) as _perm_err:
+            logger.debug("[platform] termux_dcim mkdir failed: %s", _perm_err)
+
+    sdcard_dcim = Path("/sdcard/DCIM/TermuxDiffusion")
+    if Path("/sdcard/DCIM").is_dir():
+        try:
+            sdcard_dcim.mkdir(parents=True, exist_ok=True)
+            return sdcard_dcim
+        except (PermissionError, OSError) as _perm_err:
+            logger.debug("[platform] sdcard_dcim mkdir failed: %s", _perm_err)
+
+    # 2. Secondary: Pictures/TermuxDiffusion
     termux_storage = Path.home() / "storage" / "pictures" / "TermuxDiffusion"
     if (Path.home() / "storage" / "pictures").is_dir():
         try:
             termux_storage.mkdir(parents=True, exist_ok=True)
             return termux_storage
         except (PermissionError, OSError) as _perm_err:
-            # 외부 스토리지 권한 거부 — 다음 경로 시도. 성공 변환 없음.
             logger.debug("[platform] termux_storage mkdir failed: %s", _perm_err)
 
     sdcard_pictures = Path("/sdcard/Pictures/TermuxDiffusion")

@@ -1,0 +1,17 @@
+﻿tests/
+test/
+*.test.js
+*.spec.js
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+scratch/
+*.log
+.git/
+.github/
+dist/
+build/
+*.egg-info/

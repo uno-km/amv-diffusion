@@ -11,6 +11,7 @@ from termux_diffusion.hub import (
     DEFAULT_PRESETS,
     clear_cache,
     get_cache_dir,
+    get_device_model_catalog,
     is_model_cached,
     list_cached_models,
     list_presets,
@@ -104,3 +105,30 @@ def test_gguf_validation_and_cached_models_lifecycle(temp_cache):
     assert len(list_cached_models(temp_cache)) == 1  # corrupted still remains
     clear_cache(temp_cache)
     assert len(list_cached_models(temp_cache)) == 0
+
+
+def test_get_device_model_catalog(temp_cache):
+    # Setup simulated models
+    (temp_cache / "realistic.gguf").write_bytes(b"GGUF_TEST_1")
+    (temp_cache / "taef1.safetensors").write_bytes(b"VAE_TEST_1")
+    (temp_cache / "detail_tweaker_lora.safetensors").write_bytes(b"LORA_TEST_1")
+    (temp_cache / "qwen2_clip_encoder.gguf").write_bytes(b"CLIP_TEST_1")
+
+    catalog = get_device_model_catalog(temp_cache)
+    assert catalog["total"] == 4
+    assert len(catalog["checkpoints"]) == 1
+    assert catalog["checkpoints"][0]["name"] == "realistic.gguf"
+    assert catalog["checkpoints"][0]["category"] == "checkpoint"
+
+    assert len(catalog["vae"]) == 1
+    assert catalog["vae"][0]["name"] == "taef1.safetensors"
+    assert catalog["vae"][0]["category"] == "vae"
+
+    assert len(catalog["loras"]) == 1
+    assert catalog["loras"][0]["name"] == "detail_tweaker_lora.safetensors"
+    assert catalog["loras"][0]["category"] == "lora"
+
+    assert len(catalog["text_encoders"]) == 1
+    assert catalog["text_encoders"][0]["name"] == "qwen2_clip_encoder.gguf"
+    assert catalog["text_encoders"][0]["category"] == "text_encoder"
+
