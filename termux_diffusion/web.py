@@ -217,9 +217,11 @@ def _start_quick_generation(body: Dict[str, Any], job_id: Optional[str] = None, 
 
     def worker():
         try:
-            safe_mode = bool(body.get("safe_mode", False) or body.get("keep_apps_alive", False))
-            raw_duty = body.get("gpu_duty_cycle")
-            gpu_duty_cycle = int(raw_duty) if raw_duty is not None else None
+            # Web UI default: Auto-protect with Safe Mode (GPU 90% cap, VAE tiling, Zero-LMK) unless explicitly disabled
+            raw_safe = body.get("safe_mode", True)
+            safe_mode = raw_safe.lower() not in ("false", "0", "off", "no") if isinstance(raw_safe, str) else bool(raw_safe)
+            raw_duty = body.get("gpu_duty_cycle", 90 if safe_mode else None)
+            gpu_duty_cycle = int(raw_duty) if raw_duty is not None else (90 if safe_mode else None)
 
             with TermuxExecutionGuard(enable_wake_lock=True, boost_priority=not safe_mode, safe_mode=safe_mode):
                 prompt = body.get("prompt", "")
@@ -312,7 +314,8 @@ def _start_workflow_execution(body: Dict[str, Any], job_id: Optional[str] = None
 
     def wf_worker():
         try:
-            safe_mode = bool(body.get("safe_mode", False) or body.get("keep_apps_alive", False))
+            raw_safe = body.get("safe_mode", True)
+            safe_mode = raw_safe.lower() not in ("false", "0", "off", "no") if isinstance(raw_safe, str) else bool(raw_safe)
             with TermuxExecutionGuard(enable_wake_lock=True, boost_priority=not safe_mode, safe_mode=safe_mode):
                 if "workflow_id" in body and "workflow" not in body and "nodes" not in body:
                     wf_id = str(body["workflow_id"])

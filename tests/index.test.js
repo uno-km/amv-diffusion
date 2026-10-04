@@ -29,7 +29,10 @@ const {
   detectNpuCapabilities,
   getDefaultNegativePrompt,
   setDefaultNegativePrompt,
-  getQualityGuardNegativePrompt
+  getQualityGuardNegativePrompt,
+  runWorkflow,
+  inspectWorkflow,
+  launchAmfyUI
 } = require('../index.js');
 
 async function runTests() {
@@ -271,6 +274,59 @@ async function runTests() {
     job.childProcess = { pid: 99999, killed: false, exitCode: null, kill: () => {} };
     job.cancel();
     assert.strictEqual(cancelledFired, true, 'Cancelled event should have fired on cancel()');
+  });
+
+  // 17. launchAmfyUI export validation
+  await it('launchAmfyUI is exported as callable function', () => {
+    assert.strictEqual(typeof launchAmfyUI, 'function');
+  });
+
+  // 18. runWorkflow and inspectWorkflow fail-fast checks
+  await it('runWorkflow and inspectWorkflow validate parameters and file existence', async () => {
+    let caughtWfEmpty = false;
+    try {
+      await runWorkflow('');
+    } catch (err) {
+      caughtWfEmpty = true;
+      assert(err.message.includes('[InvalidParameter]'));
+    }
+    assert.strictEqual(caughtWfEmpty, true);
+
+    let caughtWfMissing = false;
+    try {
+      await runWorkflow('non_existent_workflow_xyz123.json');
+    } catch (err) {
+      caughtWfMissing = true;
+      assert(err.message.includes('[FileNotFound]'));
+    }
+    assert.strictEqual(caughtWfMissing, true);
+
+    let caughtInspectMissing = false;
+    try {
+      await inspectWorkflow('non_existent_inspect_xyz123.json');
+    } catch (err) {
+      caughtInspectMissing = true;
+      assert(err.message.includes('[FileNotFound]'));
+    }
+    assert.strictEqual(caughtInspectMissing, true);
+  });
+
+  // 19. safeMode and gpuDutyCycle parameter propagation
+  await it('generate propagates safeMode and gpuDutyCycle correctly in npm runner', async () => {
+    const npmRunner = require('../npm/index.js');
+    assert.strictEqual(typeof npmRunner.generate, 'function');
+    assert.strictEqual(typeof npmRunner.runWorkflow, 'function');
+    assert.strictEqual(typeof npmRunner.launchAmfyUI, 'function');
+
+    // Missing prompt must throw InvalidParameter
+    let caughtNoPrompt = false;
+    try {
+      await npmRunner.generate({});
+    } catch (err) {
+      caughtNoPrompt = true;
+      assert(err.message.includes('[InvalidParameter]'));
+    }
+    assert.strictEqual(caughtNoPrompt, true);
   });
 
   if (fs.existsSync(dummyModelGguf)) {

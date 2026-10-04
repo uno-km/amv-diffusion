@@ -100,6 +100,8 @@ async function generate(options = {}, onProgress = null) {
   if (options.scheduler) args.push('--scheduler', options.scheduler);
   if (options.output) args.push('-o', options.output);
   if (options.detailFaces) args.push('--detail-faces');
+  if (options.safeMode || options.safe_mode || options.keepAppsAlive || options.keep_apps_alive) args.push('--safe-mode');
+  if (options.gpuDutyCycle || options.gpu_duty_cycle) args.push('--gpu-duty-cycle', String(options.gpuDutyCycle || options.gpu_duty_cycle));
 
   if (onProgress) {
     args.push('--json-progress');
@@ -117,6 +119,8 @@ async function generate(options = {}, onProgress = null) {
  * @param {string} [options.outputDir] Output directory for generated images
  * @param {string} [options.device='auto'] Compute device ('auto', 'gpu', 'vulkan', 'cpu')
  * @param {boolean} [options.forceRun=false] Bypass hardware checks for 16GB/24GB+ devices
+ * @param {boolean} [options.safeMode=false] Preserve SurfaceFlinger UI and background apps
+ * @param {number} [options.gpuDutyCycle=90] Target GPU duty cycle percentage
  * @param {Function} [onProgress] Progress event listener
  * @returns {Promise<Object>} Execution result
  */
@@ -133,6 +137,8 @@ async function runWorkflow(workflowPath, options = {}, onProgress = null) {
   if (options.outputDir) args.push('-o', options.outputDir);
   if (options.device) args.push('-d', options.device);
   if (options.forceRun) args.push('--force-run');
+  if (options.safeMode || options.safe_mode || options.keepAppsAlive || options.keep_apps_alive) args.push('--safe-mode');
+  if (options.gpuDutyCycle || options.gpu_duty_cycle) args.push('--gpu-duty-cycle', String(options.gpuDutyCycle || options.gpu_duty_cycle));
   if (onProgress) args.push('--json-progress');
 
   const res = await _execCli(args, onProgress);
@@ -155,8 +161,24 @@ async function inspectWorkflow(workflowPath) {
   return res;
 }
 
+/**
+ * Launch the AmfyUI Mobile Studio & Web Daemon.
+ *
+ * @param {Object} [options={}] Server launch options
+ * @param {number} [options.port=11553] Server listening port
+ * @param {string} [options.host='0.0.0.0'] Host interface to bind
+ * @returns {ChildProcess} Spawned process instance
+ */
+function launchAmfyUI(options = {}) {
+  const port = options.port || 11553;
+  const host = options.host || '0.0.0.0';
+  const args = ['web', '-p', String(port), '-H', host];
+  return spawn('termux-diffusion', args, { stdio: 'inherit' });
+}
+
 module.exports = {
   generate,
   runWorkflow,
-  inspectWorkflow
+  inspectWorkflow,
+  launchAmfyUI
 };

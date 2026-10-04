@@ -4,6 +4,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { ChildProcess } from 'child_process';
 
 export type ProgressPhase =
   | 'init'
@@ -149,6 +150,9 @@ export interface GenerateOptions {
   exportGallery?: boolean;
   wakeLock?: boolean;
   lowRamGuard?: boolean;
+  safeMode?: boolean;
+  keepAppsAlive?: boolean;
+  gpuDutyCycle?: number;
   autoProvision?: boolean;
   progress?: boolean;
   jsonProgress?: boolean;
@@ -208,7 +212,34 @@ export function resolveDeviceBackend(requestedDevice?: string): { effectiveDevic
 export function getSdCliGpuArgs(device: string, ngl: number): string[];
 export function validateGgufFile(filePath: string): boolean;
 export function getMemoryInfo(): MemoryInfo;
+export function checkMemorySafety(modelPreset?: string, imageWidth?: number, imageHeight?: number): MemorySafetyResult;
 export function getOptimalThreadCount(): number;
 export function getDefaultNegativePrompt(): string | null;
 export function setDefaultNegativePrompt(prompt?: string | null): void;
 export function getQualityGuardNegativePrompt(): string;
+export function provisionEngine(backend?: string): Promise<boolean>;
+
+export interface WorkflowOptions {
+  outputDir?: string;
+  device?: 'cpu' | 'gpu' | 'opencl' | 'vulkan' | 'auto' | string;
+  forceRun?: boolean;
+  safeMode?: boolean;
+  keepAppsAlive?: boolean;
+  gpuDutyCycle?: number;
+}
+
+export interface WorkflowExecResult {
+  success: boolean;
+  stdout: string;
+  stderr: string;
+}
+
+export function runWorkflow(
+  workflowPath: string,
+  options?: WorkflowOptions,
+  onProgress?: (event: Record<string, any>) => void
+): Promise<WorkflowExecResult>;
+
+export function inspectWorkflow(workflowPath: string): Promise<WorkflowExecResult>;
+
+export function launchAmfyUI(options?: { port?: number; host?: string }): ChildProcess;

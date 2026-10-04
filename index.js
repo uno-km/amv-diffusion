@@ -1646,6 +1646,15 @@ function generate(options) {
     cmdArgs.push('--control-strength', String(effectiveCstrength));
   }
 
+  const isSafeMode = options.safeMode || options.safe_mode || options.keepAppsAlive || options.keep_apps_alive;
+  if (isSafeMode) {
+    cmdArgs.push('--safe-mode');
+  }
+  const rawDuty = options.gpuDutyCycle || options.gpu_duty_cycle;
+  if (rawDuty !== undefined && rawDuty !== null) {
+    cmdArgs.push('--gpu-duty-cycle', String(rawDuty));
+  }
+
   const gpuArgs = getSdCliGpuArgs(effectiveDevice, nglLayers);
   cmdArgs.push(...gpuArgs);
 
@@ -1842,8 +1851,28 @@ function generate(options) {
 });
 }
 
+/**
+ * Launch the AmfyUI Mobile Studio & Web Daemon.
+ *
+ * @param {Object} [options={}] Server launch options
+ * @param {number} [options.port=11553] Server listening port
+ * @param {string} [options.host='0.0.0.0'] Host interface to bind
+ * @returns {ChildProcess} Spawned process instance
+ */
+function launchAmfyUI(options = {}) {
+  const port = options.port || 11553;
+  const host = options.host || '0.0.0.0';
+  const args = ['web', '-p', String(port), '-H', host];
+  return spawn('termux-diffusion', args, { stdio: 'inherit' });
+}
+
+const npmWorkflow = require('./npm/index.js');
+
 module.exports = {
   generate,
+  runWorkflow: npmWorkflow.runWorkflow,
+  inspectWorkflow: npmWorkflow.inspectWorkflow,
+  launchAmfyUI,
   DiffusionJob,
   TermuxDiffusion,
   downloadModel,
