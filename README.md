@@ -131,8 +131,15 @@ npx termux-diffusion install
 ### 2. Terminal CLI & AmfyUI Launch
 
 ```bash
-# Launch AmfyUI Mobile Studio in smartphone browser
-termux-diffusion ui --port 11553
+# Launch AmfyUI Mobile Studio (Default: host=0.0.0.0, port=11553)
+# Automatically binds to 0.0.0.0:11553 (both local and external LAN/Tailscale access)
+termux-diffusion ui
+
+# Access from phone: http://localhost:11553
+# Access from PC/LAN: http://<phone-ip>:11553 (e.g. http://<phone-ip>:11553)
+
+# Optional: Change port
+termux-diffusion ui --port 11554
 
 # Execute a ComfyUI JSON workflow directly
 termux-diffusion workflow run workflows/test2_s20_opencl_winter.json \
