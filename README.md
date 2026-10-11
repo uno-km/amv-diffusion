@@ -136,7 +136,7 @@ npx termux-diffusion install
 termux-diffusion ui
 
 # Access from phone: http://localhost:11553
-# Access from PC/LAN: http://<phone-ip>:11553 (e.g. http://<phone-ip>:11553)
+# Access from PC/LAN: http://<phone-ip>:11553
 
 # Optional: Change port
 termux-diffusion ui --port 11554
