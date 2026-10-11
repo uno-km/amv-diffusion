@@ -56,6 +56,7 @@ class ExitCode:
     INTEGRITY_ERROR = 20
     EXECUTION_ERROR = 30
     SELFTEST_ERROR = 40
+    RUNTIME_REQUIRED = 69
     BUILD_ERROR = 50
     ROLLBACK_ERROR = 60
 
@@ -63,6 +64,16 @@ class ExitCode:
 class PlatformNotSupportedError(TermuxDiffusionError):
     def __init__(self, message: str):
         super().__init__(message, code=ErrorCode.PLATFORM_UNSUPPORTED)
+
+
+class RuntimeRequiredError(PlatformNotSupportedError):
+    """A GPU request needs ameva-runtime (AMUDA), which is missing or too old.
+
+    The message is the shared AMU_ERR_RUNTIME_REQUIRED explanation. The CLI exits with
+    ExitCode.RUNTIME_REQUIRED; nothing is run and there is no CPU fallback.
+    """
+
+    runtime_required = True
 
 
 class ModelNotFoundError(TermuxDiffusionError):

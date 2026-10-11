@@ -19,13 +19,27 @@ if hasattr(sys.stderr, "reconfigure"):
 
 from .core import generate
 from .hub import clear_cache, download_model, list_cached_models, list_presets
-from .exceptions import TermuxDiffusionError, ErrorCode, ExitCode
+from .exceptions import TermuxDiffusionError, RuntimeRequiredError, ErrorCode, ExitCode
 from .engine import DiffusionEngine, get_binary_path
 from .doctor import run_doctor
 from .installer import provision_engine
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    """Main CLI router for termux-diffusion.
+
+    A GPU request without a usable ameva-runtime ends here with the shared explanation on
+    stderr and exit status 69, whichever sub-command raised it.
+    """
+    try:
+        return _main_impl(argv)
+    except RuntimeRequiredError as err:
+        sys.stderr.write(str(err))
+        sys.stderr.flush()
+        return ExitCode.RUNTIME_REQUIRED
+
+
+def _main_impl(argv: Optional[List[str]] = None) -> int:
     """Main CLI router for termux-diffusion."""
     if argv is None:
         argv = sys.argv[1:]
@@ -267,6 +281,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         except ValueError as val_err:
             print(f"[ERROR] [INVALID_ARGUMENT]: {val_err}", file=sys.stderr)
             return ExitCode.CLI_ERROR
+        except RuntimeRequiredError:
+            raise
         except TermuxDiffusionError as td_err:
             print(f"[ERROR] [{td_err.code}]: {td_err}", file=sys.stderr)
             return ExitCode.BUILD_ERROR

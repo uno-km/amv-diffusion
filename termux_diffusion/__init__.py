@@ -11,10 +11,6 @@ from .core import (
     set_default_negative_prompt,
     resolve_vram_and_streaming_policy,
 )
-from .detailer import (
-    detect_faces_on_image,
-    refine_face_regions,
-)
 from .workflow import (
     DAGEngine,
     NODE_REGISTRY,
@@ -150,3 +146,13 @@ __all__ = [
     "WorkflowFormatError",
 ]
 
+
+_LAZY_DETAILER = ("detect_faces_on_image", "refine_face_regions")
+
+
+def __getattr__(name):
+    """Face refinement needs numpy and Pillow; load it only when it is used (PEP 562)."""
+    if name in _LAZY_DETAILER:
+        from . import detailer
+        return getattr(detailer, name)
+    raise AttributeError("module %r has no attribute %r" % (__name__, name))

@@ -33,10 +33,11 @@ keywords = [
     "galaxy-s21"
 ]
 dynamic = ["classifiers"]
-dependencies = []
+dependencies = ["ameva-device-sdk @ https://github.com/uno-km/ameva-device-sdk/releases/download/v0.2.0/ameva_device_sdk-0.2.0-py3-none-any.whl#sha256=81e555feb798a1d84c5e605c831d80a33ecb579d32e14a74ca4674ad9ab03085", "ameva-component-sdk @ https://github.com/uno-km/ameva-component-sdk/releases/download/v0.1.2/ameva_component_sdk-0.1.2-py3-none-any.whl#sha256=6d02eaf3cbd0be9ed02ab24f279eb3736da8c3a1c28762e3411ee428931549c6"]
 
 [project.optional-dependencies]
 gpu = ["ameva-runtime>=2.0.0"]
+detailer = ["numpy>=1.20.0", "Pillow>=8.0.0"]
 
 [project.urls]
 Homepage = "https://github.com/uno-km/termux-diffusion"

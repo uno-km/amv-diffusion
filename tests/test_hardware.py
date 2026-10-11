@@ -61,7 +61,7 @@ def test_resolve_device_backend_vulkan_strict():
         assert device == "vulkan"
         assert ngl == 99
     except PlatformNotSupportedError as err:
-        assert "Vulkan GPU acceleration was explicitly requested" in str(err)
+        assert ("Vulkan GPU acceleration was explicitly requested" in str(err) or "AMU_ERR_RUNTIME_REQUIRED" in str(err))
 
 
 def test_get_sd_cli_gpu_args_cpu():
@@ -121,14 +121,14 @@ def test_cpuinfo_features_returns_list():
     assert isinstance(features, list)
 
 
-def test_gpu_without_ameva_runtime_raises_e001():
-    """Requesting GPU when ameva-runtime is not installed must Fail-Fast with E001."""
+def test_gpu_without_ameva_runtime_raises_runtime_required():
+    """Requesting GPU when ameva-runtime is not installed must stop with the shared AMU_ERR_RUNTIME_REQUIRED."""
     from termux_diffusion.exceptions import PlatformNotSupportedError
-    with patch("termux_diffusion.hardware._resolve_ameva_runtime", return_value=None):
+    with patch("ameva_device.runtime_guard.installed_runtime_version", return_value=None):
         with pytest.raises(PlatformNotSupportedError) as exc_info:
             resolve_device_backend("gpu")
-        assert "AMEVA-DIFFUSION-E001" in str(exc_info.value)
-        assert "pip install ameva-runtime" in str(exc_info.value)
+        assert "AMU_ERR_RUNTIME_REQUIRED" in str(exc_info.value)
+        assert "pip install" in str(exc_info.value)
 
 
 def test_auto_without_ameva_runtime_defaults_to_cpu():
@@ -142,7 +142,7 @@ def test_auto_without_ameva_runtime_defaults_to_cpu():
 def test_adreno_650_gpu_supported_with_vulkan_driver():
     """Verify that Adreno 650 with Vulkan driver resolves to vulkan backend."""
     mock_ameva = MagicMock()
-    with patch("termux_diffusion.hardware._resolve_ameva_runtime", return_value=mock_ameva):
+    with patch("termux_diffusion.hardware._resolve_ameva_runtime", return_value=mock_ameva), patch("ameva_device.runtime_guard.installed_runtime_version", return_value="2.8.1"):
         with patch("termux_diffusion.hardware._detect_gpu_name", return_value="Adreno (TM) 650"):
             with patch("termux_diffusion.hardware._detect_soc_name", return_value="SM8250"):
                 with patch("termux_diffusion.hardware.detect_hardware_profile") as mock_prof:
@@ -159,7 +159,7 @@ def test_adreno_650_gpu_supported_with_vulkan_driver():
 def test_adreno_830_gpu_supported_with_vulkan_driver():
     """Verify that Adreno 830 with Vulkan driver resolves to vulkan backend after v2.7.2 shader repair."""
     mock_ameva = MagicMock()
-    with patch("termux_diffusion.hardware._resolve_ameva_runtime", return_value=mock_ameva):
+    with patch("termux_diffusion.hardware._resolve_ameva_runtime", return_value=mock_ameva), patch("ameva_device.runtime_guard.installed_runtime_version", return_value="2.8.1"):
         with patch("termux_diffusion.hardware._detect_gpu_name", return_value="Adreno (TM) 830"):
             with patch("termux_diffusion.hardware._detect_soc_name", return_value="SM8750"):
                 with patch("termux_diffusion.hardware.detect_hardware_profile") as mock_prof:

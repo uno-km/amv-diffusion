@@ -18,7 +18,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 
-from .exceptions import PlatformNotSupportedError
+from .exceptions import PlatformNotSupportedError, RuntimeRequiredError
 from .npu import NPUProfile, NPUVendor, detect_npu_capabilities, get_optimal_heterogeneous_pipeline
 
 logger = logging.getLogger("termux_diffusion.hardware")
@@ -443,6 +443,37 @@ def _resolve_ameva_runtime() -> Optional[Any]:
     return None
 
 
+GPU_RUNTIME_MIN_VERSION = "2.0.0"
+
+
+def _require_gpu_runtime(requested_device: str) -> None:
+    """Stop with the shared AMU_ERR_RUNTIME_REQUIRED explanation unless ameva-runtime is usable.
+
+    Every GPU request (vulkan, gpu, opencl) goes through here. There is no CPU fallback: the
+    caller gets RuntimeRequiredError and the CLI exits with status 69.
+    """
+    try:
+        from ameva_device import AmevaRuntimeRequiredError, require_ameva_runtime
+    except ImportError as exc:
+        raise RuntimeRequiredError(
+            "[AMU_ERR_RUNTIME_REQUIRED] termux-diffusion: GPU execution (device='%s') needs ameva-runtime (AMUDA), "
+            "and the shared check library 'ameva-device-sdk' is missing from this installation.\n"
+            "Nothing was run, and no CPU fallback was used.\n"
+            "Install:\n"
+            "  pip install \"ameva-runtime>=%s\"\n"
+            "  npm install -g @ameva/runtime\n"
+            "  Releases and documentation: https://github.com/uno-km/ameva-runtime-releases\n"
+            "To run on the CPU instead, use --device cpu.\n" % (requested_device, GPU_RUNTIME_MIN_VERSION)
+        ) from exc
+    try:
+        require_ameva_runtime(
+            "termux-diffusion", "GPU execution (device='%s')" % requested_device,
+            min_version=GPU_RUNTIME_MIN_VERSION,
+        )
+    except AmevaRuntimeRequiredError as exc:
+        raise RuntimeRequiredError(str(exc)) from exc
+
+
 def resolve_device_backend(requested_device: str) -> Tuple[str, int]:
     """Resolve the user's device= argument to an actual backend and ngl count.
     
@@ -458,23 +489,20 @@ def resolve_device_backend(requested_device: str) -> Tuple[str, int]:
     if req == "cpu":
         return "cpu", 0
 
-    ameva_mod = _resolve_ameva_runtime()
+    # Rule 2: every GPU request (vulkan, gpu, opencl) needs ameva-runtime (AMUDA). An explicit
+    # request stops here with the shared install guidance; there is no CPU fallback.
+    if req in ("vulkan", "gpu", "opencl", "cl"):
+        _require_gpu_runtime(req)
 
-    # Rule 2: Explicit GPU / Vulkan Mode
-    if req in ("vulkan", "gpu"):
-        if ameva_mod is None:
-            raise PlatformNotSupportedError(
-                "[ERROR: AMEVA-DIFFUSION-E001] GPU acceleration requires 'ameva-runtime'.\n"
-                "Cause: Hardware abstraction provider 'ameva-runtime' is not installed.\n"
-                "Action Required: Install the hardware acceleration package via:\n"
-                "  pip install ameva-runtime\n"
-                "Documentation: https://uno-km.vercel.app/lib/diffusion/"
-            )
+    ameva_mod = _resolve_ameva_runtime()
 
     if req == "auto":
         if ameva_mod is None:
-            sys.stdout.write("[INFO] ameva-runtime is not installed. Defaulting to CPU backend.\n")
-            sys.stdout.flush()
+            sys.stderr.write(
+                "[termux-diffusion] GPU not used: ameva-runtime (AMUDA) is not installed, so this run uses the CPU. "
+                "To enable the GPU: pip install ameva-runtime (https://github.com/uno-km/ameva-runtime-releases)\n"
+            )
+            sys.stderr.flush()
             return "cpu", 0
 
     profile = detect_hardware_profile()
