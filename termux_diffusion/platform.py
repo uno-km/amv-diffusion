@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 """Platform inspection, Samsung Galaxy hardware detection, memory checks, and Android OS bridges."""
 
 import ctypes

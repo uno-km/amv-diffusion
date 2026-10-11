@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 """Mobile FaceDetailer Module for Termux-Diffusion.
 
 Brings ComfyUI Impact Pack / ADetailer capability to mobile on-device diffusion:

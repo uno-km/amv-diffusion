@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 """Deterministic unit test suite for Autonomous VRAM Tiering & TermuxExecutionGuard."""
 
 from unittest.mock import patch

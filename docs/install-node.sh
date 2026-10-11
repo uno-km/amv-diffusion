@@ -1,4 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 # 1-Click Automated Zero-Touch Installer for termux-diffusion (Node.js Edition)
 set -e
 

@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 """Hardware acceleration detection, Vulkan/OpenCL/NPU/TPU probing, and CMake flag generation.
 
 This module probes the Android device for available GPU, NPU, TPU, and CPU compute backends

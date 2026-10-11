@@ -1,4 +1,8 @@
 /**
+ * Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 OR Commercial-License
+ */
+/**
  * @fileoverview Production Node.js client and workflow runner for termux-diffusion.
  * Supports both Method 1 (Direct CLI/Option generation) and Method 2 (ComfyUI DAG Workflow Runner).
  * Dual-format aware: seamlessly runs ComfyUI UI Graph Format (.json) & API Prompt Format (.json).

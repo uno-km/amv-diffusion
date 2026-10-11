@@ -1,4 +1,8 @@
 /**
+ * Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 OR Commercial-License
+ */
+/**
  * termux-diffusion: Production On-Device AI Image Generation for Android Termux & Samsung Galaxy
  * Dual-Engine (Node.js & TypeScript) Native Module with Vulkan/OpenCL & NPU/TPU Hardware Acceleration
  */

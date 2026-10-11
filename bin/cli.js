@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 /**
+ * Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 OR Commercial-License
+ */
+/**
  * AMEVA Standard Node.js CLI Runner for termux_diffusion.
  * Automatically resolves Python 3 environment and dispatches to python -m termux_diffusion.
  */

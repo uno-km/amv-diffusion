@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 """Unit tests for termux-diffusion Model Hub, GGUF validator, SHA256, and cache manager."""
 
 import hashlib

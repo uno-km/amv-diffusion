@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 # ==============================================================================
 # termux-diffusion Universal One-Line Bootstrap Installer
 # Usage: curl -sL https://raw.githubusercontent.com/uno-km/termux-diffusion/main/scripts/install.sh | bash

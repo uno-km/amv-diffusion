@@ -1,4 +1,8 @@
 /**
+ * Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+ * SPDX-License-Identifier: Apache-2.0 OR Commercial-License
+ */
+/**
  * Termux-Diffusion - Official Documentation Translation Dictionary (AMEVA Ecosystem Design)
  * Languages: English (en), Korean (ko), Japanese (ja), Chinese (zh), Spanish (es), Hindi (hi)
  */

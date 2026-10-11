@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 """AmfyUI Mobile Studio & Local HTTP Daemon for termux-diffusion.
 
 Tailored specifically for smartphone viewports (e.g. Samsung Galaxy S25 / S21 / S20, 360px-420px width).

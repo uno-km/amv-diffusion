@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 """Unit tests for DiffusionEngine, backend-specific binary locator, and Zero-Silent-Fallback rules."""
 
 import os

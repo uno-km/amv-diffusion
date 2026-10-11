@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 """Atomic download manager with SHA-256 integrity verification, concurrency lock, and rollback safety."""
 
 import os

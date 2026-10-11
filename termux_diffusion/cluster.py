@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 """
 AMEVA Unified Distributed RPC Cluster Orchestration Utility.
 Strict Protocol: Zero-Silent-Fallback & Zero-Deception ABI.
