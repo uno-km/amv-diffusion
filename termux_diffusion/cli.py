@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 """Command-line interface entry points for termux-diffusion."""
 
 import argparse
@@ -108,9 +110,20 @@ def _main_impl(argv: Optional[List[str]] = None) -> int:
     gen_parser.add_argument("--sampling-method", type=str, dest="sampler", help=argparse.SUPPRESS)
     gen_parser.add_argument("--cfg-scale", type=float, dest="cfg", help=argparse.SUPPRESS)
     gen_parser.add_argument("--isolate-text-encoder", "--sequential-stages", dest="isolate_text_encoder", action="store_true", default=False, help="Enable 2-stage memory isolation: execute text encoder independently, kill process to recover RAM, then execute DiT inference")
-    gen_parser.add_argument("--safe-mode", action="store_true", default=False, help="Preserve SurfaceFlinger 60/120fps UI and background apps (nice +10, VAE Tiling, 90% GPU duty cycle)")
+    gen_parser.add_argument("--safe-mode", action="store_true", default=False, help="Preserve SurfaceFlinger 60/120fps UI and background apps (nice +10, VAE Tiling, 90%% GPU duty cycle)")
     gen_parser.add_argument("--keep-apps-alive", action="store_true", default=False, help="Alias for --safe-mode")
-    gen_parser.add_argument("--gpu-duty-cycle", type=int, default=None, help="GPU load percentage cap (e.g. 90 for 90% duty cycle, 10% idle gap for SurfaceFlinger)")
+    gen_parser.add_argument("--gpu-duty-cycle", type=int, default=None, help="GPU load percentage cap (e.g. 90 for 90%% duty cycle, 10%% idle gap for SurfaceFlinger)")
+    # Safe-By-Default & Clean-Room Purger Flags (SCRUM-524)
+    gen_parser.add_argument("--kill", dest="kill_threshold", nargs="?", const=50, default=None, type=int, help="Optional clean-room purge: terminate background processes exceeding RSS threshold in MB, excluding whitelist (default: 50MB)")
+    gen_parser.add_argument("--kill-threshold", dest="kill_threshold", type=int, help="Explicit memory threshold in MB for --kill clean-room purge")
+    gen_parser.add_argument("--swap-allowance", type=str, default="auto", help="Allowed swap headroom limit: 'auto', '0', '1G', '2G' (default: auto)")
+    gen_parser.add_argument("--safe-budget", type=float, default=0.95, help="Safe memory budget ratio of MemAvailable (default: 0.95 for 5%% OS margin)")
+    gen_parser.add_argument("--full-accel", "--danger-force", dest="full_accel", action="store_true", default=False, help="Bypass all heuristic memory safety rails and run hardware at maximum unconstrained throttle")
+    gen_parser.add_argument("--checkpoint-latent", action="store_true", default=False, help="Save intermediate 4D latent tensor to disk immediately upon DiT completion")
+    gen_parser.add_argument("--resume-latent", type=str, default=None, help="Bypass DiT and resume from pre-computed .bin latent tensor for VAE decode")
+    gen_parser.add_argument("--temporal-chunking", type=int, default=None, help="Optional fast preview: chunk frames into N-frame slices (e.g. 9) to accelerate 3D attention")
+    gen_parser.add_argument("--tile-size", type=int, default=None, help="Explicit spatial VAE tile size override in pixels (e.g. 128, 256)")
+    gen_parser.add_argument("--temp-tile", type=int, default=None, help="Explicit temporal VAE tile size override in frames (e.g. 2, 4)")
 
     # install command
     inst_parser = subparsers.add_parser("install", help="Provision native Bionic CPU engine (sd-cli-cpu & libomp.so)")
@@ -216,6 +229,22 @@ def _main_impl(argv: Optional[List[str]] = None) -> int:
                 if not args.vae_format and "default_vae_format" in p_cfg:
                     args.vae_format = p_cfg["default_vae_format"]
 
+        # Safe-By-Default & Clean-Room Purger Execution (SCRUM-524)
+        if getattr(args, "kill_threshold", None) is not None:
+            from .purger import purge_idle_processes
+            purge_summary = purge_idle_processes(threshold_mb=float(args.kill_threshold))
+            print(f"[Purger] Clean-room purge: reclaimed {purge_summary.total_reclaimed_mb:.1f} MB across {len(purge_summary.killed_processes)} processes.")
+
+        from .safety import evaluate_safe_memory_budget
+        mem_assessment = evaluate_safe_memory_budget(
+            safe_margin=getattr(args, "safe_budget", 0.95),
+            swap_allowance=getattr(args, "swap_allowance", "auto")
+        )
+
+        # Safe-By-Default: 타일링 자동 인젝션 (풀악셀 명시적 지정 시에만 생략 가능)
+        if not getattr(args, "full_accel", False) and not vae_tiling:
+            vae_tiling = True
+
         try:
             res = generate(
                 prompt=args.prompt,
@@ -272,6 +301,15 @@ def _main_impl(argv: Optional[List[str]] = None) -> int:
                 safe_mode=getattr(args, "safe_mode", False),
                 keep_apps_alive=getattr(args, "keep_apps_alive", False),
                 gpu_duty_cycle=getattr(args, "gpu_duty_cycle", None),
+                checkpoint_latent=getattr(args, "checkpoint_latent", False),
+                resume_latent=getattr(args, "resume_latent", None),
+                temporal_chunking=getattr(args, "temporal_chunking", None),
+                tile_size=getattr(args, "tile_size", None),
+                temp_tile=getattr(args, "temp_tile", None),
+                full_accel=getattr(args, "full_accel", False),
+                kill_threshold=getattr(args, "kill_threshold", None),
+                swap_allowance=getattr(args, "swap_allowance", "auto"),
+                safe_budget=getattr(args, "safe_budget", 0.95),
                 auto_provision=True
             )
             return 0 if res.path.exists() else 1

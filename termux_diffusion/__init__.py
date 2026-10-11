@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 from ._version import __version__
 
 from .core import (
@@ -86,6 +88,13 @@ from .npu import (
     detect_npu_capabilities,
     get_optimal_heterogeneous_pipeline,
 )
+from .purger import purge_idle_processes, PurgeSummary
+from .safety import (
+    evaluate_safe_memory_budget,
+    SafeMemoryAssessment,
+    save_latent_checkpoint,
+    load_latent_checkpoint,
+)
 
 __author__ = "uno-km (AMEVA Foundation)"
 __license__ = "MIT"
@@ -137,6 +146,12 @@ __all__ = [
     "ModelDownloadError",
     "ProvisioningError",
     "OOMRiskError",
+    "purge_idle_processes",
+    "PurgeSummary",
+    "evaluate_safe_memory_budget",
+    "SafeMemoryAssessment",
+    "save_latent_checkpoint",
+    "load_latent_checkpoint",
     "execute_workflow",
     "WorkflowExecutor",
     "WorkflowParser",

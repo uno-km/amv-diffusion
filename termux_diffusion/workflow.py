@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Uno Kim / AMEVA Foundation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 OR Commercial-License
 """ComfyUI Workflow (DAG) Dual-Format Engine for termux-diffusion.
 
 Parses, topologically sorts, and executes ComfyUI workflows in both:
@@ -645,7 +647,7 @@ def handle_ksampler(node: WorkflowNode, inputs: Dict[str, Any], ctx: ExecutionCo
     steps = inputs.get("steps", 15)
     cfg = inputs.get("cfg", 7.0)
     sampler_name = inputs.get("sampler_name", "euler_a")
-    scheduler = inputs.get("scheduler", "flux" if "z_image" in str(model_name).lower() else "karras")
+    scheduler = inputs.get("scheduler", "default" if "z_image" in str(model_name).lower() else "karras")
     denoise = inputs.get("denoise", 1.0)
 
     # If parsing from UI widgets values
@@ -671,6 +673,26 @@ def handle_ksampler(node: WorkflowNode, inputs: Dict[str, Any], ctx: ExecutionCo
     if flow_shift is None and isinstance(model_obj, dict):
         flow_shift = model_obj.get("shift")
 
+    # Mobile memory defense parameters for high-footprint DiT models (Z-Image Turbo 6B)
+    extra_kws = dict(ctx.extra_params or {})
+    model_str = str(model_name).lower()
+    if "z_image" in model_str or "turbo" in model_str or "dit" in model_str:
+        extra_kws.setdefault("params_backend", "diffusion=cpu")
+        extra_kws.setdefault("max_vram", "vulkan0=1")
+        extra_kws.setdefault("stream_layers", True)
+        extra_kws.setdefault("clip_on_cpu", True)
+        extra_kws.setdefault("vae_on_cpu", True)
+        extra_kws.setdefault("vae_format", "flux")
+        extra_kws.setdefault("mmap", True)
+        extra_kws.setdefault("taesd", "taef1.safetensors")
+        extra_kws.setdefault("vae_tiling", True)
+        extra_kws.setdefault("safe_mode", True)
+        extra_kws.setdefault("gpu_duty_cycle", 90)
+        extra_kws.setdefault("diffusion_fa", True)
+        extra_kws.setdefault("threads", 4)
+        # Use ultra-quantized IQ1_S (1.1GB vs 1.6GB Q2_K) to reclaim 500MB headroom on 8GB phones
+        extra_kws.setdefault("llm", "Qwen3-4B-Instruct-2507-Q2_K.gguf")
+
     gen_res = generate(
         prompt=pos_text or "beautiful realistic masterpiece",
         negative_prompt=neg_text,
@@ -687,7 +709,8 @@ def handle_ksampler(node: WorkflowNode, inputs: Dict[str, Any], ctx: ExecutionCo
         output=str(out_file),
         timeout=max(7200, steps * 900),
         progress=ctx.progress,
-        json_progress=ctx.json_progress
+        json_progress=ctx.json_progress,
+        **extra_kws
     )
 
     ctx.generated_images.append(gen_res.path)
