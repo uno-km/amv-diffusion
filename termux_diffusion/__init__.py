@@ -95,6 +95,13 @@ from .safety import (
     save_latent_checkpoint,
     load_latent_checkpoint,
 )
+from .canvas import (
+    magic_eraser,
+    magic_grab,
+    magic_expand,
+    decompose_layers,
+    CanvasProfilingResult,
+)
 
 __author__ = "uno-km (AMEVA Foundation)"
 __license__ = "MIT"
@@ -152,6 +159,11 @@ __all__ = [
     "SafeMemoryAssessment",
     "save_latent_checkpoint",
     "load_latent_checkpoint",
+    "magic_eraser",
+    "magic_grab",
+    "magic_expand",
+    "decompose_layers",
+    "CanvasProfilingResult",
     "execute_workflow",
     "WorkflowExecutor",
     "WorkflowParser",
