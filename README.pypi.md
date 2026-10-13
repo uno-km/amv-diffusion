@@ -9,6 +9,15 @@
 
 ---
 
+## What's New in v2.1.0 — Mobile Canva Studio & SurfaceFlinger Shield
+
+- Added Mobile Canva Studio Suite: Magic Eraser (magic_eraser), Magic Grab (magic_grab), Magic Expand (magic_expand), and Magic Layers (decompose_layers).
+- Implemented SurfaceFlinger Crash Shield with GPU duty-cycle throttling and safe-mode protection.
+- Added Safe Memory Purger with automatic OOM safety budget management.
+- Unified GPU acceleration dispatch through ameva-runtime HAL.
+
+---
+
 ## 🚀 Major Breakthrough: 6.0B DiT (Z-Image Turbo) Sovereign Mobile Execution
 
 `termux-diffusion v1.8.0` introduces official production support for **Z-Image Turbo**, empowering mobile devices to execute modern **6.0 Billion Parameter Diffusion Transformers (DiT)** natively on-device.
