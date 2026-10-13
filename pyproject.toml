@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "termux-diffusion"
-version = "2.0.1"
+version = "2.1.0"
 description = "AmfyUI (ComfyUI Mobile DAG Studio) & Z-Image Turbo (6.0B DiT) On-Device Diffusion Runtime for Android Termux"
 readme = "README.pypi.md"
 requires-python = ">=3.8"
