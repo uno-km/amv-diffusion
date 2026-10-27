@@ -40,19 +40,19 @@ gpu = ["ameva-runtime>=2.0.0"]
 detailer = ["numpy>=1.20.0", "Pillow>=8.0.0"]
 
 [project.urls]
-Homepage = "https://github.com/uno-km/termux-diffusion"
-Documentation = "https://uno-km.github.io/termux-diffusion/"
-"npm Package" = "https://www.npmjs.com/package/termux-diffusion"
-"Bug Tracker" = "https://github.com/uno-km/termux-diffusion/issues"
-"Source" = "https://github.com/uno-km/termux-diffusion"
+Homepage = "https://github.com/uno-km/amv-diffusion"
+Documentation = "https://uno-km.github.io/amv-diffusion/"
+"npm Package" = "https://www.npmjs.com/package/amv-diffusion"
+"Bug Tracker" = "https://github.com/uno-km/amv-diffusion/issues"
+"Source" = "https://github.com/uno-km/amv-diffusion"
 
 [project.scripts]
-termux-diffusion = "termux_diffusion.cli:main"
-termux-diffusion-install = "termux_diffusion.cli:run_install_cli"
-termux-diffusion-doctor = "termux_diffusion.cli:run_doctor_cli"
+amv-diffusion = "termux_diffusion.cli:main"
+amv-diffusion-install = "termux_diffusion.cli:run_install_cli"
+amv-diffusion-doctor = "termux_diffusion.cli:run_doctor_cli"
 
 [project.entry-points."ameva.components"]
-termux-diffusion = "termux_diffusion.adapter:create_adapter"
+amv-diffusion = "termux_diffusion.adapter:create_adapter"
 
 
 [tool.setuptools.package-data]

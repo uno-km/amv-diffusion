@@ -5,8 +5,8 @@
   "main": "index.js",
   "types": "index.d.ts",
   "bin": {
-    "termux-diffusion": "bin/cli.js",
-    "termux-diffusion-install": "bin/cli.js"
+    "amv-diffusion": "bin/cli.js",
+    "amv-diffusion-install": "bin/cli.js"
   },
   "files": [
     "index.js",
@@ -20,7 +20,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/uno-km/termux-diffusion.git"
+    "url": "git+https://github.com/uno-km/amv-diffusion.git"
   },
   "keywords": [
     "stable-diffusion",
@@ -45,9 +45,9 @@
   "author": "uno-km (AMEVA Foundation) <zhfldk014745@naver.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/uno-km/termux-diffusion/issues"
+    "url": "https://github.com/uno-km/amv-diffusion/issues"
   },
-  "homepage": "https://uno-km.github.io/termux-diffusion/",
+  "homepage": "https://uno-km.github.io/amv-diffusion/",
   "dependencies": {},
   "optionalDependencies": {
     "@ameva/runtime": "^2.0.0"
