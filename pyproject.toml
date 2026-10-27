@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "termux-diffusion"
+name = "amv-diffusion"
 version = "2.1.0"
 description = "AmfyUI (ComfyUI Mobile DAG Studio) & Z-Image Turbo (6.0B DiT) On-Device Diffusion Runtime for Android Termux"
 readme = "README.pypi.md"

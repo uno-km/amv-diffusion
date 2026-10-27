@@ -1,10 +1,14 @@
-# Termux-Diffusion
+# AMV-Diffusion
 
-[![PyPI](https://img.shields.io/pypi/v/termux-diffusion.svg?style=flat-square&color=0369a1)](https://pypi.org/project/termux-diffusion/)
-[![Python](https://img.shields.io/pypi/pyversions/termux-diffusion.svg?style=flat-square)](https://pypi.org/project/termux-diffusion/)
-[![npm](https://img.shields.io/npm/v/termux-diffusion.svg?style=flat-square&color=b91c1c)](https://www.npmjs.com/package/termux-diffusion)
-[![npm downloads](https://img.shields.io/npm/dm/termux-diffusion.svg?style=flat-square&color=b91c1c)](https://www.npmjs.com/package/termux-diffusion)
-[![License](https://img.shields.io/badge/License-Apache_2.0-004499.svg?style=flat-square)](https://github.com/uno-km/termux-diffusion)
+> **마이그레이션 안내**: 이 패키지는 `termux-diffusion`에서 `amv-diffusion`로 이름이 바뀌었습니다. 기존 `termux-diffusion` 배포본(PyPI/npm)은 호환을 위해 당분간 유지되나 deprecated 상태이며 더 이상 갱신되지 않습니다. `pip install amv-diffusion` / `npm install amv-diffusion`로 전환하십시오.
+>
+> Android **Termux 환경** 또는 **안드로이드 Linux 커널(루팅 없이 Linux 환경이 구동되는 모든 디바이스)** 에서 동작합니다 — Termux 전용이 아닙니다.
+
+[![PyPI](https://img.shields.io/pypi/v/amv-diffusion.svg?style=flat-square&color=0369a1)](https://pypi.org/project/amv-diffusion/)
+[![Python](https://img.shields.io/pypi/pyversions/amv-diffusion.svg?style=flat-square)](https://pypi.org/project/amv-diffusion/)
+[![npm](https://img.shields.io/npm/v/amv-diffusion.svg?style=flat-square&color=b91c1c)](https://www.npmjs.com/package/amv-diffusion)
+[![npm downloads](https://img.shields.io/npm/dm/amv-diffusion.svg?style=flat-square&color=b91c1c)](https://www.npmjs.com/package/amv-diffusion)
+[![License](https://img.shields.io/badge/License-Apache_2.0-004499.svg?style=flat-square)](https://github.com/uno-km/amv-diffusion)
 
 > **Official Support for Z-Image Turbo (6.0B DiT) & Pure Native On-Device Diffusion Acceleration for Android Termux & Samsung Galaxy.**  
 > *Zero PRoot. Zero Virtualization. 100% Native ARM64 Bionic libc, Khronos Vulkan 1.1+ GPU Shaders & NEON SIMD Vector Engine.*
@@ -22,7 +26,7 @@
 
 ## 🚀 Major Breakthrough: 6.0B DiT (Z-Image Turbo) Sovereign Mobile Execution
 
-`termux-diffusion v1.8.0` officially achieves a world-class on-device AI milestone: **Native, unquantized context execution of 6.0 Billion Parameter Diffusion Transformers (DiT)** on commercial Android hardware (Samsung Galaxy S21 5G / ARM Mali-G78 MP14 GPU) without cloud dependencies.
+`amv-diffusion v1.8.0` officially achieves a world-class on-device AI milestone: **Native, unquantized context execution of 6.0 Billion Parameter Diffusion Transformers (DiT)** on commercial Android hardware (Samsung Galaxy S21 5G / ARM Mali-G78 MP14 GPU) without cloud dependencies.
 
 ### 🌟 Tri-Engine Asymmetric Pipeline Architecture
 ```
@@ -92,20 +96,20 @@
 
 ## 💻 3-Channel Practical User Manual: CLI, PIP, NPM
 
-`termux-diffusion` delivers 100% feature parity across **Terminal CLI**, **Python SDK (PyPI)**, and **Node.js SDK (NPM)**.
+`amv-diffusion` delivers 100% feature parity across **Terminal CLI**, **Python SDK (PyPI)**, and **Node.js SDK (NPM)**.
 
 ### 1. Installation
 
 * **Python SDK (PyPI)**:
   ```bash
-  pip install termux-diffusion
-  termux-diffusion install
+  pip install amv-diffusion
+  amv-diffusion install
   ```
 
 * **Node.js / TypeScript SDK & CLI (NPM)**:
   ```bash
-  npm install -g termux-diffusion
-  npx termux-diffusion install
+  npm install -g amv-diffusion
+  npx amv-diffusion install
   ```
 
 ---
@@ -114,7 +118,7 @@
 
 #### [Method 1] One-Touch High-Level Command
 ```bash
-termux-diffusion generate "A cinematic photo of a neon cybernetic tiger walking in Seoul street at night" \
+amv-diffusion generate "A cinematic photo of a neon cybernetic tiger walking in Seoul street at night" \
   --preset z-image-turbo \
   --device vulkan \
   --steps 8 \
@@ -135,9 +139,9 @@ sd-cli-vulkan \
   -p "A cinematic photo of a neon cybernetic tiger walking in Seoul street at night" \
   -W 512 -H 512 -t 4 \
   --steps 8 --cfg-scale 1.0 --sampling-method euler \
-  --diffusion-model ~/.cache/termux-diffusion/models/z_image_turbo-Q2_K.gguf \
-  --llm ~/.cache/termux-diffusion/models/Qwen3-4B-Instruct-2507-Q2_K.gguf \
-  --taesd ~/.cache/termux-diffusion/models/taef1.safetensors \
+  --diffusion-model ~/.cache/amv-diffusion/models/z_image_turbo-Q2_K.gguf \
+  --llm ~/.cache/amv-diffusion/models/Qwen3-4B-Instruct-2507-Q2_K.gguf \
+  --taesd ~/.cache/amv-diffusion/models/taef1.safetensors \
   --clip-on-cpu --vae-on-cpu --vae-format flux --mmap --diffusion-fa \
   --backend clip=cpu,diffusion=vulkan0,vae=cpu \
   --max-vram vulkan0=1 --stream-layers --params-backend diffusion=cpu --vae-tiling \
@@ -146,7 +150,7 @@ sd-cli-vulkan \
 
 ---
 
-### 3. Python SDK Manual (pip install termux-diffusion)
+### 3. Python SDK Manual (pip install amv-diffusion)
 
 ```python
 import termux_diffusion as td
@@ -173,10 +177,10 @@ print(f"Generated and synchronized to Samsung Gallery: {image_path}")
 
 ---
 
-### 4. Node.js / TypeScript SDK Manual (npm install termux-diffusion)
+### 4. Node.js / TypeScript SDK Manual (npm install amv-diffusion)
 
 ```typescript
-import { generate } from "termux-diffusion";
+import { generate } from "amv-diffusion";
 
 async function main(): Promise<void> {
   // Official Z-Image Turbo 6.0B DiT Synthesis via Node.js API
